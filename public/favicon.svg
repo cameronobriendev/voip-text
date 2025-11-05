@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Message bubble with tail -->
+  <path d="M 20 25 Q 20 15, 30 15 L 70 15 Q 80 15, 80 25 L 80 55 Q 80 65, 70 65 L 40 65 L 25 80 L 30 65 L 30 65 Q 20 65, 20 55 Z"
+        fill="url(#bubbleGradient)"
+        stroke="rgba(255,255,255,0.3)"
+        stroke-width="1.5"/>
+
+  <!-- Three dots inside bubble -->
+  <circle cx="35" cy="40" r="4" fill="white" opacity="0.9"/>
+  <circle cx="50" cy="40" r="4" fill="white" opacity="0.9"/>
+  <circle cx="65" cy="40" r="4" fill="white" opacity="0.9"/>
+</svg>
