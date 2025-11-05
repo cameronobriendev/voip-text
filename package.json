@@ -4,7 +4,7 @@
   "description": "Personal SMS and voicemail platform for voip.ms",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "echo 'No frontend build needed - using plain JS'",
     "dev": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
