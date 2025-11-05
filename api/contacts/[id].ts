@@ -1,23 +1,35 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * contacts/[id].ts - BirdText Individual Contact Endpoint
+ * Edge Runtime
+ */
+
+export const config = { runtime: 'edge' };
+
 import { getDB } from '../db/client.js';
-import { getTokenFromCookie, verifyToken } from '../../utils/auth';
+import { verifySession } from '../auth/utils.js';
 import { formatPhoneE164 } from '../../utils/phone';
 import type { Contact } from '../../types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: Request): Promise<Response> {
   // Verify authentication
-  const token = getTokenFromCookie(req.headers.cookie);
-  if (!token || !verifyToken(token)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const user = await verifySession(req);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
   }
 
-  const { id } = req.query;
+  // Get contact ID from URL
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  const id = pathParts[pathParts.length - 1];
 
-  if (!id || typeof id !== 'string') {
-    return res.status(400).json({ error: 'Contact ID is required' });
+  if (!id) {
+    return new Response(
+      JSON.stringify({ error: 'Contact ID is required' }),
+      { status: 400, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   const sql = getDB();
@@ -30,20 +42,27 @@ export default async function handler(
       `;
 
       if (contacts.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Contact not found',
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Contact not found',
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } }
+        );
       }
 
-      return res.status(200).json({
-        success: true,
-        contact: contacts[0],
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          contact: contacts[0],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
 
     } else if (req.method === 'PUT') {
       // Update contact
-      const { name, phone_number, notes, avatar_color } = req.body;
+      const body = await req.json();
+      const { name, phone_number, notes, avatar_color } = body;
 
       // Check if contact exists
       const existing : Contact[] = await sql`
@@ -51,10 +70,13 @@ export default async function handler(
       `;
 
       if (existing.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Contact not found',
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Contact not found',
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } }
+        );
       }
 
       // Build update fields
@@ -83,10 +105,13 @@ export default async function handler(
         RETURNING *
       `;
 
-      return res.status(200).json({
-        success: true,
-        contact: updated[0],
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          contact: updated[0],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
 
     } else if (req.method === 'DELETE') {
       // Delete contact
@@ -95,26 +120,39 @@ export default async function handler(
       `;
 
       if (deleted.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Contact not found',
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Contact not found',
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } }
+        );
       }
 
-      return res.status(200).json({
-        success: true,
-        message: 'Contact deleted successfully',
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Contact deleted successfully',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
 
     } else {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { status: 405, headers: { 'content-type': 'application/json' } }
+      );
     }
 
   } catch (error) {
     console.error('Contact API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }

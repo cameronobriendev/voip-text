@@ -1,36 +1,48 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * messages/send.ts - Send SMS Message
+ * Edge Runtime
+ */
+
+export const config = { runtime: 'edge' };
+
 import { getDB } from '../db/client.js';
-import { getTokenFromCookie, verifyToken } from '../../utils/auth';
+import { verifySession } from '../auth/utils.js';
 import { sendSMS } from '../../utils/voipms';
 import type { SendMessageRequest, SendMessageResponse, Contact, Message } from '../../types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   // Verify authentication
-  const token = getTokenFromCookie(req.headers.cookie);
-  const user = verifyToken(token || '');
+  const user = await verifySession(req);
 
   if (!user) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    } as SendMessageResponse);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Unauthorized',
+      } as SendMessageResponse),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   try {
-    const { contact_id, message } = req.body as SendMessageRequest;
+    const body = await req.json();
+    const { contact_id, message } = body as SendMessageRequest;
 
     if (!contact_id || !message) {
-      return res.status(400).json({
-        success: false,
-        error: 'Contact ID and message are required',
-      } as SendMessageResponse);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Contact ID and message are required',
+        } as SendMessageResponse),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      );
     }
 
     const sql = getDB();
@@ -41,10 +53,13 @@ export default async function handler(
     `;
 
     if (contacts.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Contact not found',
-      } as SendMessageResponse);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Contact not found',
+        } as SendMessageResponse),
+        { status: 404, headers: { 'content-type': 'application/json' } }
+      );
     }
 
     const contact = contacts[0];
@@ -53,10 +68,13 @@ export default async function handler(
     const voipmsDid = process.env.VOIPMS_DID;
 
     if (!voipmsDid) {
-      return res.status(500).json({
-        success: false,
-        error: 'VoIP.ms DID not configured',
-      } as SendMessageResponse);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'VoIP.ms DID not configured',
+        } as SendMessageResponse),
+        { status: 500, headers: { 'content-type': 'application/json' } }
+      );
     }
 
     // Send SMS via voip.ms
@@ -86,16 +104,23 @@ export default async function handler(
       RETURNING *
     `;
 
-    return res.status(200).json({
-      success: true,
-      message: messages[0],
-    } as SendMessageResponse);
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: messages[0],
+      } as SendMessageResponse),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Send message error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to send message',
-    } as SendMessageResponse);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to send message',
+        details: error instanceof Error ? error.message : String(error)
+      } as SendMessageResponse),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }

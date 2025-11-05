@@ -1,26 +1,41 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * messages/[id]/read.ts - Mark Message as Read
+ * Edge Runtime
+ */
+
+export const config = { runtime: 'edge' };
+
 import { getDB } from '../../db/client.js';
-import { getTokenFromCookie, verifyToken } from '../../../utils/auth';
+import { verifySession } from '../../auth/utils.js';
 import type { Message } from '../../../types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'PUT') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   // Verify authentication
-  const token = getTokenFromCookie(req.headers.cookie);
-  if (!token || !verifyToken(token)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const user = await verifySession(req);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
   }
 
-  const { id } = req.query;
+  // Get message ID from URL
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  const id = pathParts[pathParts.length - 2]; // /api/messages/[id]/read
 
-  if (!id || typeof id !== 'string') {
-    return res.status(400).json({ error: 'Message ID is required' });
+  if (!id) {
+    return new Response(
+      JSON.stringify({ error: 'Message ID is required' }),
+      { status: 400, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   try {
@@ -35,22 +50,32 @@ export default async function handler(
     `;
 
     if (updated.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Message not found',
-      });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Message not found',
+        }),
+        { status: 404, headers: { 'content-type': 'application/json' } }
+      );
     }
 
-    return res.status(200).json({
-      success: true,
-      message: updated[0],
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: updated[0],
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Mark as read error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }

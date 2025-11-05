@@ -1,26 +1,41 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * messages/conversation/[contactId].ts - Get Conversation Messages
+ * Edge Runtime
+ */
+
+export const config = { runtime: 'edge' };
+
 import { getDB } from '../../db/client.js';
-import { getTokenFromCookie, verifyToken } from '../../../utils/auth';
+import { verifySession } from '../../auth/utils.js';
 import type { Message } from '../../../types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   // Verify authentication
-  const token = getTokenFromCookie(req.headers.cookie);
-  if (!token || !verifyToken(token)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const user = await verifySession(req);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
   }
 
-  const { contactId } = req.query;
+  // Get contact ID from URL
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/');
+  const contactId = pathParts[pathParts.length - 1];
 
-  if (!contactId || typeof contactId !== 'string') {
-    return res.status(400).json({ error: 'Contact ID is required' });
+  if (!contactId) {
+    return new Response(
+      JSON.stringify({ error: 'Contact ID is required' }),
+      { status: 400, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   try {
@@ -33,16 +48,23 @@ export default async function handler(
       ORDER BY created_at ASC
     `;
 
-    return res.status(200).json({
-      success: true,
-      messages,
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        messages,
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Get conversation error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }
