@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Textable - Messages</title>
+  <style>
+    body {
+      font-family: 'SF UI Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .loading h1 {
+      color: #667eea;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .loading p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <div class="spinner"></div>
+    <h1>Textable</h1>
+    <p>Loading your messages...</p>
+  </div>
+
+  <script>
+    // Check authentication
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        const data = await response.json();
+
+        if (!data.authenticated) {
+          // Redirect to login
+          window.location.href = '/login.html';
+        } else {
+          // TODO: Load messaging interface
+          document.querySelector('.loading p').textContent = 'Messaging interface coming soon!';
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login.html';
+      }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>
