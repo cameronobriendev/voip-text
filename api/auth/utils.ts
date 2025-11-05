@@ -61,7 +61,7 @@ export async function createSession(user: User): Promise<string> {
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('30d')
+    .setExpirationTime('10y') // Never expires (10 years)
     .sign(SECRET);
 
   return token;

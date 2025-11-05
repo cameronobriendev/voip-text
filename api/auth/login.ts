@@ -77,7 +77,8 @@ export default async function handler(req: Request): Promise<Response> {
       email: user.email
     });
 
-    const cookie = `session=${token}; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
+    // Session never expires (10 years = 315360000 seconds)
+    const cookie = `session=${token}; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=${10 * 365 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
       process.env.VERCEL_ENV === 'production' ? '; Secure' : ''
     }`;
 

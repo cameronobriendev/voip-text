@@ -75,12 +75,154 @@
       font-weight: 600;
       font-size: 16px;
       text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .user-name:hover {
+      transform: scale(1.02);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .user-name:active {
+      transform: scale(0.98);
     }
 
     .user-status {
       color: rgba(255, 255, 255, 0.9);
       font-size: 13px;
       text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 320px;
+      max-width: 420px;
+      pointer-events: auto;
+      animation: toastSlideIn 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toast.hiding {
+      animation: toastSlideOut 0.3s ease forwards;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes toastSlideOut {
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+    }
+
+    .toast-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      color: #1a202c;
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .toast-message {
+      color: #4a5568;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: #718096;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .toast-close:hover {
+      background: rgba(0,0,0,0.05);
+      color: #1a202c;
+    }
+
+    .toast.success .toast-icon {
+      color: #10b981;
+    }
+
+    .toast.success .toast-progress {
+      background: linear-gradient(90deg, #10b981, #059669);
+    }
+
+    .toast.info .toast-icon {
+      color: #3b82f6;
+    }
+
+    .toast.info .toast-progress {
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+    }
+
+    .toast-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      transform-origin: left;
+      animation: toastProgress 4s linear forwards;
+    }
+
+    @keyframes toastProgress {
+      to {
+        transform: scaleX(0);
+      }
     }
 
     .logout-btn {
@@ -722,6 +864,69 @@
     let currentContact = null;
     let contacts = [];
     let pendingMessage = '';
+    let userDID = null;
+
+    // Toast notification system
+    function showToast(message, type = 'success', duration = 4000) {
+      const container = document.getElementById('toastContainer');
+
+      const icons = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+      };
+
+      const titles = {
+        success: 'Success',
+        info: 'Info'
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">${icons[type]}</div>
+        <div class="toast-content">
+          <div class="toast-title">${titles[type]}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        <div class="toast-progress"></div>
+      `;
+
+      container.appendChild(toast);
+
+      // Hover-to-pause functionality
+      let timeoutId;
+      let startTime = Date.now();
+      let remainingTime = duration;
+      const progressBar = toast.querySelector('.toast-progress');
+
+      // Initial auto-dismiss timeout
+      timeoutId = setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+
+      // Pause on hover
+      toast.addEventListener('mouseenter', () => {
+        clearTimeout(timeoutId);
+        remainingTime -= (Date.now() - startTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'paused';
+        }
+      });
+
+      // Resume on mouse leave
+      toast.addEventListener('mouseleave', () => {
+        startTime = Date.now();
+        timeoutId = setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 300);
+        }, remainingTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'running';
+        }
+      });
+    }
 
     // Check authentication
     async function checkAuth() {
@@ -735,7 +940,29 @@
         }
 
         currentUser = data;
-        document.getElementById('userName').textContent = data.username;
+
+        // Load DID number
+        const didResponse = await fetch('/api/config/did');
+        const didData = await didResponse.json();
+
+        if (didData.success && didData.did) {
+          userDID = didData.did;
+          const userNameEl = document.getElementById('userName');
+          userNameEl.textContent = userDID;
+          userNameEl.title = 'Click to copy';
+
+          // Add click-to-copy functionality
+          userNameEl.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(userDID);
+              showToast(`Copied ${userDID} to clipboard!`, 'success');
+            } catch (error) {
+              console.error('Failed to copy:', error);
+              showToast('Failed to copy to clipboard', 'info');
+            }
+          });
+        }
+
         document.getElementById('userAvatar').textContent = data.username.charAt(0).toUpperCase();
         return true;
       } catch (error) {
@@ -973,12 +1200,13 @@
           input.value = '';
           input.style.height = 'auto';
           await loadMessages(currentContact.id);
+          showToast('Message sent successfully!', 'success');
         } else {
-          alert('Failed to send message: ' + (data.error || 'Unknown error'));
+          showToast('Failed to send message: ' + (data.error || 'Unknown error'), 'info');
         }
       } catch (error) {
         console.error('Failed to send message:', error);
-        alert('Failed to send message. Please try again.');
+        showToast('Failed to send message. Please try again.', 'info');
       } finally {
         sendBtn.disabled = false;
         input.disabled = false;
@@ -1087,13 +1315,13 @@
         if (data.success) {
           closeCreateContactModal();
           await loadConversations();
-          alert(`Contact "${name}" created successfully!`);
+          showToast(`Contact "${name}" created successfully!`, 'success');
         } else {
-          alert('Failed to create contact: ' + (data.error || 'Unknown error'));
+          showToast('Failed to create contact: ' + (data.error || 'Unknown error'), 'info');
         }
       } catch (error) {
         console.error('Failed to create contact:', error);
-        alert('Failed to create contact. Please try again.');
+        showToast('Failed to create contact. Please try again.', 'info');
       }
     });
 
@@ -1143,5 +1371,9 @@
 
     init();
   </script>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
 </body>
 </html>
