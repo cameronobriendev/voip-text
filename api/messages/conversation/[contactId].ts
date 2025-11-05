@@ -6,7 +6,7 @@
 export const config = { runtime: 'edge' };
 
 import { getDB } from '../../db/client.js';
-import { verifySession } from '../../auth/utils.js';
+import { isAuthenticated } from '../../auth/utils.js';
 import type { Message } from '../../../types';
 
 export default async function handler(req: Request): Promise<Response> {
@@ -18,7 +18,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Verify authentication
-  const user = await verifySession(req);
+  const user = await isAuthenticated(req);
   if (!user) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),

@@ -6,7 +6,7 @@
 export const config = { runtime: 'edge' };
 
 import { getDB } from '../db/client.js';
-import { verifySession } from '../auth/utils.js';
+import { isAuthenticated } from '../auth/utils.js';
 import { sendSMS } from '../../utils/voipms';
 import type { SendMessageRequest, SendMessageResponse, Contact, Message } from '../../types';
 
@@ -19,7 +19,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Verify authentication
-  const user = await verifySession(req);
+  const user = await isAuthenticated(req);
 
   if (!user) {
     return new Response(
