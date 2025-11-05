@@ -25,7 +25,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (!username || !password) {
       return new Response(
         JSON.stringify({
-          ok: false,
+          success: false,
           error: 'Username and password are required'
         }),
         { status: 400, headers: { 'content-type': 'application/json' } }
@@ -50,7 +50,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (users.length === 0) {
       return new Response(
         JSON.stringify({
-          ok: false,
+          success: false,
           error: 'Invalid username or password'
         }),
         { status: 401, headers: { 'content-type': 'application/json' } }
@@ -64,7 +64,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (!validPassword) {
       return new Response(
         JSON.stringify({
-          ok: false,
+          success: false,
           error: 'Invalid username or password'
         }),
         { status: 401, headers: { 'content-type': 'application/json' } }
@@ -83,7 +83,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     return new Response(
       JSON.stringify({
-        ok: true,
+        success: true,
         user: {
           id: user.id,
           username: user.username,
@@ -104,7 +104,7 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(
       JSON.stringify({
-        ok: false,
+        success: false,
         error: 'Internal server error',
         details: error instanceof Error ? error.message : String(error)
       }),
