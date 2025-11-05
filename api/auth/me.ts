@@ -1,66 +1,36 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getTokenFromCookie, verifyToken } from '../../utils/auth';
-import { getDb } from '../../utils/db';
-import type { User } from '../../types';
+/**
+ * me.ts - BirdText Auth Check Endpoint
+ * Adapted from BrassHelm Security Templates (no CORS needed)
+ */
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export const config = { runtime: 'edge' };
+
+import { isAuthenticated } from './utils.js';
+
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
-  try {
-    // Get token from cookie
-    const token = getTokenFromCookie(req.headers.cookie);
+  const user = await isAuthenticated(req);
 
-    if (!token) {
-      return res.status(401).json({
-        authenticated: false,
-        error: 'No token provided'
-      });
-    }
+  if (!user) {
+    return new Response(
+      JSON.stringify({ authenticated: false }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
+  }
 
-    // Verify token
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return res.status(401).json({
-        authenticated: false,
-        error: 'Invalid token'
-      });
-    }
-
-    // Get fresh user data from database
-    const sql = getDb();
-    const users : User[] = await sql`
-      SELECT id, username, email, created_at FROM users WHERE id = ${decoded.id}
-    `;
-
-    if (users.length === 0) {
-      return res.status(401).json({
-        authenticated: false,
-        error: 'User not found'
-      });
-    }
-
-    const user = users[0];
-
-    return res.status(200).json({
+  return new Response(
+    JSON.stringify({
       authenticated: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      }
-    });
-
-  } catch (error) {
-    console.error('Auth check error:', error);
-    return res.status(500).json({
-      authenticated: false,
-      error: 'Internal server error'
-    });
-  }
+      id: user.id,
+      username: user.username,
+      email: user.email
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  );
 }

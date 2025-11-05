@@ -1,58 +1,115 @@
 // Authentication utilities (password hashing, JWT)
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+// Updated to use jose library (Edge + Node.js compatible)
+import { SignJWT, jwtVerify } from 'jose';
 import type { AuthUser } from '../types';
+
+const SESSION_SECRET = process.env.SESSION_SECRET;
+
+if (!SESSION_SECRET) {
+  throw new Error('SESSION_SECRET environment variable is required');
+}
+
+const SECRET = new TextEncoder().encode(SESSION_SECRET);
 
 /**
  * Hash a password using PBKDF2 (Web Crypto API compatible)
  * Returns format: "salt:hash"
  */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+
+  const saltHex = Array.from(salt)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const hashHex = Array.from(new Uint8Array(derivedBits))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return `${saltHex}:${hashHex}`;
 }
 
 /**
  * Verify a password against a hash
  */
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
-  const [salt, hash] = storedHash.split(':');
-  if (!salt || !hash) {
-    throw new Error('Invalid password hash format');
-  }
-  const verifyHash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return hash === verifyHash;
+  const encoder = new TextEncoder();
+  const [saltHex, hashHex] = storedHash.split(':');
+
+  const salt = new Uint8Array(
+    saltHex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+  );
+
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+
+  const derivedHashHex = Array.from(new Uint8Array(derivedBits))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return hashHex === derivedHashHex;
 }
 
 /**
  * Generate JWT token for authenticated user
  */
-export function generateToken(user: AuthUser): string {
-  if (!process.env.SESSION_SECRET) {
-    throw new Error('SESSION_SECRET environment variable is not set');
-  }
-  return jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
-    process.env.SESSION_SECRET,
-    { expiresIn: '30d' }
-  );
+export async function generateToken(user: AuthUser): Promise<string> {
+  const token = await new SignJWT({
+    id: user.id,
+    username: user.username,
+    email: user.email
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(SECRET);
+
+  return token;
 }
 
 /**
  * Verify JWT token and return user data
  */
-export function verifyToken(token: string): AuthUser | null {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
-    if (!process.env.SESSION_SECRET) {
-      throw new Error('SESSION_SECRET environment variable is not set');
-    }
-    const decoded = jwt.verify(token, process.env.SESSION_SECRET) as AuthUser;
-    return decoded;
+    const { payload } = await jwtVerify(token, SECRET);
+    return payload as AuthUser;
   } catch (error) {
     return null;
   }
@@ -60,6 +117,7 @@ export function verifyToken(token: string): AuthUser | null {
 
 /**
  * Extract JWT token from cookie header
+ * Updated to look for 'session' cookie (not 'token')
  */
 export function getTokenFromCookie(cookieHeader: string | undefined): string | null {
   if (!cookieHeader) return null;
@@ -70,5 +128,5 @@ export function getTokenFromCookie(cookieHeader: string | undefined): string | n
     return acc;
   }, {} as Record<string, string>);
 
-  return cookies.token || null;
+  return cookies.session || cookies.token || null;
 }

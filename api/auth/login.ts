@@ -1,76 +1,112 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../../utils/db';
-import { verifyPassword, generateToken } from '../../utils/auth';
-import type { LoginRequest, LoginResponse, User } from '../../types';
+/**
+ * login.ts - BirdText Login Endpoint
+ * Adapted from BrassHelm Security Templates
+ */
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export const config = { runtime: 'edge' };
+
+import { createSession, verifyPassword } from './utils.js';
+import { getDB } from '../db/client.js';
+
+const COOKIE_DOMAIN = '.birdmail.ca';
+
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   try {
-    const { username, password } = req.body as LoginRequest;
+    const body = await req.json();
+    const { username, password } = body as { username?: string; password?: string };
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Username and password are required'
-      } as LoginResponse);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'Username and password are required'
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      );
     }
 
-    const sql = getDb();
+    const sql = getDB();
 
-    // Find user by username
-    const users : User[] = await sql`
-      SELECT * FROM users WHERE username = ${username}
+    interface DBUser {
+      id: string;
+      username: string;
+      password_hash: string;
+      email: string;
+      created_at: string;
+    }
+
+    const users: DBUser[] = await sql`
+      SELECT * FROM users
+      WHERE LOWER(username) = LOWER(${username})
     `;
 
     if (users.length === 0) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid username or password'
-      } as LoginResponse);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'Invalid username or password'
+        }),
+        { status: 401, headers: { 'content-type': 'application/json' } }
+      );
     }
 
     const user = users[0];
 
-    // Verify password
-    const isValid = await verifyPassword(password, user.password_hash);
+    const validPassword = await verifyPassword(password, user.password_hash);
 
-    if (!isValid) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid username or password'
-      } as LoginResponse);
+    if (!validPassword) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'Invalid username or password'
+        }),
+        { status: 401, headers: { 'content-type': 'application/json' } }
+      );
     }
 
-    // Generate JWT token
-    const token = generateToken({
+    const token = await createSession({
       id: user.id,
       username: user.username,
-      email: user.email,
+      email: user.email
     });
 
-    // Set httpOnly cookie with token
-    res.setHeader('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Strict; Secure`);
+    const cookie = `session=${token}; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
+      process.env.VERCEL_ENV === 'production' ? '; Secure' : ''
+    }`;
 
-    return res.status(200).json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email
+        }
+      }),
+      {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+          'set-cookie': cookie
+        }
       }
-    } as LoginResponse);
+    );
 
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    } as LoginResponse);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: 'Internal server error'
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }

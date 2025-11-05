@@ -1,18 +1,32 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * logout.ts - BirdText Logout Endpoint
+ * Adapted from BrassHelm Security Templates
+ */
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export const config = { runtime: 'edge' };
+
+const COOKIE_DOMAIN = '.birdmail.ca';
+
+export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'content-type': 'application/json' } }
+    );
   }
 
-  // Clear the token cookie
-  res.setHeader('Set-Cookie', 'token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict; Secure');
+  const cookie = `session=; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${
+    process.env.VERCEL_ENV === 'production' ? '; Secure' : ''
+  }`;
 
-  return res.status(200).json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+  return new Response(
+    JSON.stringify({ ok: true, message: 'Logged out' }),
+    {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': cookie
+      }
+    }
+  );
 }
