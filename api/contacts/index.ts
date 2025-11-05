@@ -1,17 +1,23 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * contacts/index.ts - BirdText Contacts Endpoint
+ * Edge Runtime
+ */
+
+export const config = { runtime: 'edge' };
+
 import { getDB } from '../db/client.js';
-import { getTokenFromCookie, verifyToken } from '../../utils/auth';
+import { verifySession } from '../auth/utils.js';
 import { formatPhoneE164, generateAvatarColor } from '../../utils/phone';
 import type { Contact } from '../../types';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: Request): Promise<Response> {
   // Verify authentication
-  const token = getTokenFromCookie(req.headers.cookie);
-  if (!token || !verifyToken(token)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const user = await verifySession(req);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
   }
 
   const sql = getDB();
@@ -23,20 +29,27 @@ export default async function handler(
         SELECT * FROM contacts ORDER BY name ASC
       `;
 
-      return res.status(200).json({
-        success: true,
-        contacts,
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          contacts,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
 
     } else if (req.method === 'POST') {
       // Create new contact
-      const { name, phone_number, notes } = req.body;
+      const body = await req.json();
+      const { name, phone_number, notes } = body;
 
       if (!name || !phone_number) {
-        return res.status(400).json({
-          success: false,
-          error: 'Name and phone number are required',
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Name and phone number are required',
+          }),
+          { status: 400, headers: { 'content-type': 'application/json' } }
+        );
       }
 
       // Format phone number to E.164
@@ -48,10 +61,13 @@ export default async function handler(
       `;
 
       if (existing.length > 0) {
-        return res.status(409).json({
-          success: false,
-          error: 'Contact with this phone number already exists',
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Contact with this phone number already exists',
+          }),
+          { status: 409, headers: { 'content-type': 'application/json' } }
+        );
       }
 
       // Generate random avatar color
@@ -64,20 +80,30 @@ export default async function handler(
         RETURNING *
       `;
 
-      return res.status(201).json({
-        success: true,
-        contact: newContacts[0],
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          contact: newContacts[0],
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } }
+      );
 
     } else {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { status: 405, headers: { 'content-type': 'application/json' } }
+      );
     }
 
   } catch (error) {
     console.error('Contacts API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }
