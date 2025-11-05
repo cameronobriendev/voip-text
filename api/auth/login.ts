@@ -101,10 +101,12 @@ export default async function handler(req: Request): Promise<Response> {
 
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(
       JSON.stringify({
         ok: false,
-        error: 'Internal server error'
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
       }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
