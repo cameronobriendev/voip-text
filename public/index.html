@@ -1221,6 +1221,9 @@
       const sendBtn = document.getElementById('sendBtn');
       const input = document.getElementById('messageInput');
 
+      // Capture message before closing modal (which clears pendingMessage)
+      const messageToSend = pendingMessage;
+
       closeSendModal();
       sendBtn.disabled = true;
       input.disabled = true;
@@ -1231,7 +1234,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contact_id: currentContact.id,
-            message: pendingMessage
+            message: messageToSend
           })
         });
 
