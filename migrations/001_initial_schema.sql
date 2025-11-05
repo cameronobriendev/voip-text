@@ -1,4 +1,4 @@
--- Textable Database Schema
+-- BirdText Database Schema
 -- Initial migration for users, contacts, and messages
 
 -- Users table (Cameron and Kacy)
@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
 CREATE INDEX IF NOT EXISTS idx_contacts_phone ON contacts(phone_number);
 
 -- Create default users (Cameron and Kacy)
--- Password: 'textable123' (CHANGE THIS AFTER FIRST LOGIN)
+-- Password: 'birdtext123' (CHANGE THIS AFTER FIRST LOGIN)
 -- Hash generated using PBKDF2 with salt
 INSERT INTO users (username, password_hash, email) VALUES
   ('cameron', '3b4aef7557339de8f59e295a8e8aaa48:cd88ca593286e89d6070336ab92226092528dd28cabcb8c6031064fff6ac7df8e1eec0acdbdc17d7439a43d07e7cc1c607178c58fa6ad048b9505b1481eaefcc', 'cameron@birdmail.ca'),

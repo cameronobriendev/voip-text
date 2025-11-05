@@ -1,5 +1,5 @@
 {
-  "name": "textable",
+  "name": "birdtext",
   "version": "1.0.0",
   "description": "Personal SMS and voicemail platform for voip.ms",
   "main": "index.js",
