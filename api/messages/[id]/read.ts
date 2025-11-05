@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../../../utils/db';
+import { getDB } from '../../db/client.js';
 import { getTokenFromCookie, verifyToken } from '../../../utils/auth';
 import type { Message } from '../../../types';
 
@@ -24,7 +24,7 @@ export default async function handler(
   }
 
   try {
-    const sql = getDb();
+    const sql = getDB();
 
     // Mark message as read
     const updated : Message[] = await sql`

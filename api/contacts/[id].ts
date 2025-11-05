@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../../utils/db';
+import { getDB } from '../db/client.js';
 import { getTokenFromCookie, verifyToken } from '../../utils/auth';
 import { formatPhoneE164 } from '../../utils/phone';
 import type { Contact } from '../../types';
@@ -20,7 +20,7 @@ export default async function handler(
     return res.status(400).json({ error: 'Contact ID is required' });
   }
 
-  const sql = getDb();
+  const sql = getDB();
 
   try {
     if (req.method === 'GET') {

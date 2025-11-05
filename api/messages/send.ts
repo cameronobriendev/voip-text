@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../../utils/db';
+import { getDB } from '../db/client.js';
 import { getTokenFromCookie, verifyToken } from '../../utils/auth';
 import { sendSMS } from '../../utils/voipms';
 import type { SendMessageRequest, SendMessageResponse, Contact, Message } from '../../types';
@@ -33,7 +33,7 @@ export default async function handler(
       } as SendMessageResponse);
     }
 
-    const sql = getDb();
+    const sql = getDB();
 
     // Get contact
     const contacts : Contact[] = await sql`

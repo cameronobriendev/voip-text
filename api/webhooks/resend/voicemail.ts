@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
-import { getDb } from '../../../utils/db';
+import { getDB } from '../../db/client.js';
 import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../../utils/phone';
 import type { Contact, Message, ResendEmailWebhook } from '../../../types';
 
@@ -114,7 +114,7 @@ export default async function handler(
 
     console.log('Uploaded voicemail MP3 to Blob:', blob.url);
 
-    const sql = getDb();
+    const sql = getDB();
 
     // Find or create contact
     let contacts : Contact[] = await sql`
