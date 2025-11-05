@@ -117,7 +117,7 @@ export default async function handler(
     const sql = getDb();
 
     // Find or create contact
-    let contacts = await sql<Contact[]>`
+    let contacts : Contact[] = await sql`
       SELECT * FROM contacts WHERE phone_number = ${fromPhone}
     `;
 
@@ -128,7 +128,7 @@ export default async function handler(
       const name = displayPhoneNumber(fromPhone);
       const avatarColor = generateAvatarColor();
 
-      const newContacts = await sql<Contact[]>`
+      const newContacts : Contact[] = await sql`
         INSERT INTO contacts (name, phone_number, avatar_color)
         VALUES (${name}, ${fromPhone}, ${avatarColor})
         RETURNING *

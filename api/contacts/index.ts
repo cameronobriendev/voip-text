@@ -19,7 +19,7 @@ export default async function handler(
   try {
     if (req.method === 'GET') {
       // List all contacts (shared between users)
-      const contacts = await sql<Contact[]>`
+      const contacts : Contact[] = await sql`
         SELECT * FROM contacts ORDER BY name ASC
       `;
 
@@ -43,7 +43,7 @@ export default async function handler(
       const formattedPhone = formatPhoneE164(phone_number);
 
       // Check if contact with this phone number already exists
-      const existing = await sql<Contact[]>`
+      const existing : Contact[] = await sql`
         SELECT * FROM contacts WHERE phone_number = ${formattedPhone}
       `;
 
@@ -58,7 +58,7 @@ export default async function handler(
       const avatarColor = generateAvatarColor();
 
       // Create contact
-      const newContacts = await sql<Contact[]>`
+      const newContacts : Contact[] = await sql`
         INSERT INTO contacts (name, phone_number, avatar_color, notes)
         VALUES (${name}, ${formattedPhone}, ${avatarColor}, ${notes || null})
         RETURNING *

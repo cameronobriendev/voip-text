@@ -36,7 +36,7 @@ export default async function handler(
     const sql = getDb();
 
     // Get contact
-    const contacts = await sql<Contact[]>`
+    const contacts : Contact[] = await sql`
       SELECT * FROM contacts WHERE id = ${contact_id}
     `;
 
@@ -63,7 +63,7 @@ export default async function handler(
     const voipmsMessageId = await sendSMS(contact.phone_number, message);
 
     // Store message in database
-    const messages = await sql<Message[]>`
+    const messages : Message[] = await sql`
       INSERT INTO messages (
         contact_id,
         direction,

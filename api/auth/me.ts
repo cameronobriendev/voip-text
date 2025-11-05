@@ -34,7 +34,7 @@ export default async function handler(
 
     // Get fresh user data from database
     const sql = getDb();
-    const users = await sql<User[]>`
+    const users : User[] = await sql`
       SELECT id, username, email, created_at FROM users WHERE id = ${decoded.id}
     `;
 

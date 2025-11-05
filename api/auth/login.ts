@@ -24,7 +24,7 @@ export default async function handler(
     const sql = getDb();
 
     // Find user by username
-    const users = await sql<User[]>`
+    const users : User[] = await sql`
       SELECT * FROM users WHERE username = ${username}
     `;
 

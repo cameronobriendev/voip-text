@@ -25,7 +25,7 @@ export default async function handler(
   try {
     if (req.method === 'GET') {
       // Get single contact
-      const contacts = await sql<Contact[]>`
+      const contacts : Contact[] = await sql`
         SELECT * FROM contacts WHERE id = ${id}
       `;
 
@@ -46,7 +46,7 @@ export default async function handler(
       const { name, phone_number, notes, avatar_color } = req.body;
 
       // Check if contact exists
-      const existing = await sql<Contact[]>`
+      const existing : Contact[] = await sql`
         SELECT * FROM contacts WHERE id = ${id}
       `;
 
@@ -71,7 +71,7 @@ export default async function handler(
       }
 
       // Update contact
-      const updated = await sql<Contact[]>`
+      const updated : Contact[] = await sql`
         UPDATE contacts
         SET
           name = COALESCE(${updateFields.name || null}, name),
@@ -90,7 +90,7 @@ export default async function handler(
 
     } else if (req.method === 'DELETE') {
       // Delete contact
-      const deleted = await sql<Contact[]>`
+      const deleted : Contact[] = await sql`
         DELETE FROM contacts WHERE id = ${id} RETURNING *
       `;
 

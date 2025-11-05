@@ -27,7 +27,7 @@ export default async function handler(
     const sql = getDb();
 
     // Get all messages for this contact (both SMS and voicemail)
-    const messages = await sql<Message[]>`
+    const messages : Message[] = await sql`
       SELECT * FROM messages
       WHERE contact_id = ${contactId}
       ORDER BY created_at ASC

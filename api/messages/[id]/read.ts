@@ -27,7 +27,7 @@ export default async function handler(
     const sql = getDb();
 
     // Mark message as read
-    const updated = await sql<Message[]>`
+    const updated : Message[] = await sql`
       UPDATE messages
       SET status = 'read', read_at = NOW()
       WHERE id = ${id}
