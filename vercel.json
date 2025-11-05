@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "outputDirectory": "public",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "SESSION_SECRET": "@session_secret",
+    "VOIPMS_EMAIL": "@voipms_email",
+    "VOIPMS_API_PASSWORD": "@voipms_api_password",
+    "VOIPMS_DID": "@voipms_did",
+    "RESEND_API": "@resend_api",
+    "BLOB_READ_WRITE_TOKEN": "@blob_read_write_token"
+  }
+}

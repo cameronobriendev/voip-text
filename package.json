@@ -1,0 +1,26 @@
+{
+  "name": "textable",
+  "version": "1.0.0",
+  "description": "Personal SMS and voicemail platform for voip.ms",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["sms", "voip", "messaging", "voicemail"],
+  "author": "Cameron O'Brien",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@vercel/node": "^5.5.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/blob": "^2.0.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
