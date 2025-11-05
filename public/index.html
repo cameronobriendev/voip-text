@@ -777,6 +777,7 @@
         </div>
         <div class="search-new-container">
           <input type="text" class="search-bar" placeholder="Search conversations..." id="searchBar">
+          <button class="new-message-btn" id="contactsBtn">Contacts</button>
           <button class="new-message-btn" id="newMessageBtn">New</button>
         </div>
       </div>
@@ -842,6 +843,22 @@
           <button type="submit" class="modal-btn modal-btn-primary">Create</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Contacts Management Modal -->
+  <div class="modal-overlay" id="manageContactsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Contacts</div>
+        <div class="modal-subtitle">Manage your contacts</div>
+      </div>
+      <input type="text" class="search-bar" placeholder="Search contacts..." id="manageContactSearch" style="margin-bottom: 16px;">
+      <div class="contact-list" id="manageContactList" style="max-height: 400px; overflow-y: auto;"></div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeManageContactsModal()">Close</button>
+        <button class="modal-btn modal-btn-primary" onclick="openCreateContactFromManage()">Add Contact</button>
+      </div>
     </div>
   </div>
 
@@ -947,15 +964,30 @@
 
         if (didData.success && didData.did) {
           userDID = didData.did;
+
+          // Format DID for display: 1 (780) 482 5026
+          const formatDID = (did) => {
+            // Remove all non-digits
+            const digits = did.replace(/\D/g, '');
+            // Format as: 1 (XXX) XXX XXXX
+            if (digits.length === 11 && digits[0] === '1') {
+              return `1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)} ${digits.slice(7)}`;
+            } else if (digits.length === 10) {
+              return `1 (${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6)}`;
+            }
+            return did; // Return as-is if format doesn't match
+          };
+
           const userNameEl = document.getElementById('userName');
-          userNameEl.textContent = userDID;
+          userNameEl.textContent = formatDID(userDID);
           userNameEl.title = 'Click to copy';
 
-          // Add click-to-copy functionality
+          // Add click-to-copy functionality - copy digits only
           userNameEl.addEventListener('click', async () => {
             try {
-              await navigator.clipboard.writeText(userDID);
-              showToast(`Copied ${userDID} to clipboard!`, 'success');
+              const digitsOnly = userDID.replace(/\D/g, '');
+              await navigator.clipboard.writeText(digitsOnly);
+              showToast(`Copied ${digitsOnly} to clipboard!`, 'success');
             } catch (error) {
               console.error('Failed to copy:', error);
               showToast('Failed to copy to clipboard', 'info');
@@ -1220,6 +1252,11 @@
       showContactsModal();
     });
 
+    // Contacts button - show manage contacts modal
+    document.getElementById('contactsBtn').addEventListener('click', () => {
+      showManageContactsModal();
+    });
+
     // Show contacts modal
     async function showContactsModal() {
       const modal = document.getElementById('contactsModal');
@@ -1333,6 +1370,74 @@
         contact.phone_number.includes(query)
       );
       renderContactList(filtered);
+    });
+
+    // Show manage contacts modal
+    async function showManageContactsModal() {
+      const modal = document.getElementById('manageContactsModal');
+      const contactList = document.getElementById('manageContactList');
+
+      contactList.innerHTML = '<div class="loading"><div class="spinner"></div>Loading contacts...</div>';
+      modal.classList.add('show');
+
+      try {
+        const response = await fetch('/api/contacts');
+        const data = await response.json();
+
+        if (data.success && data.contacts) {
+          contacts = data.contacts; // Store for search
+          renderManageContactList(data.contacts);
+        } else {
+          contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">No contacts found</div></div>';
+        }
+      } catch (error) {
+        console.error('Failed to load contacts:', error);
+        contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load contacts</div></div>';
+      }
+    }
+
+    // Render contact list in manage contacts modal
+    function renderManageContactList(contactsList) {
+      const contactList = document.getElementById('manageContactList');
+
+      if (contactsList.length === 0) {
+        contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">No contacts found</div></div>';
+        return;
+      }
+
+      contactList.innerHTML = contactsList.map(contact => `
+        <div class="contact-list-item">
+          <div class="contact-list-item-avatar" style="background: ${contact.avatar_color}">
+            ${contact.name.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex: 1;">
+            <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+            <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Close manage contacts modal
+    window.closeManageContactsModal = function() {
+      document.getElementById('manageContactsModal').classList.remove('show');
+      document.getElementById('manageContactSearch').value = '';
+    };
+
+    // Open create contact modal from manage contacts
+    window.openCreateContactFromManage = function() {
+      closeManageContactsModal();
+      document.getElementById('createContactModal').classList.add('show');
+    };
+
+    // Search contacts in manage modal
+    document.getElementById('manageContactSearch').addEventListener('input', function(e) {
+      const query = e.target.value.toLowerCase();
+      const filtered = contacts.filter(contact =>
+        contact.name.toLowerCase().includes(query) ||
+        contact.phone_number.includes(query)
+      );
+      renderManageContactList(filtered);
     });
 
     // Search conversations
