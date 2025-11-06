@@ -174,7 +174,7 @@ export default async function handler(req, res) {
         });
         formData.append('username', 'voicemail-system');
 
-        const transcriptionResponse = await fetch('http://143.110.154.10:3001/upload', {
+        const transcriptionResponse = await fetch('http://do.brasshelm.com:3001/upload', {
           method: 'POST',
           body: formData,
           headers: formData.getHeaders(),
@@ -198,7 +198,7 @@ export default async function handler(req, res) {
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
 
-          const resultResponse = await fetch(`http://143.110.154.10:3001/result/${jobId}`);
+          const resultResponse = await fetch(`http://do.brasshelm.com:3001/result/${jobId}`);
 
           if (resultResponse.ok) {
             const result = await resultResponse.json();
