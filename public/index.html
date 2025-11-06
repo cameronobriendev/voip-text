@@ -923,13 +923,18 @@
       padding: 12px;
       font-size: 20px;
       text-align: right;
-      border: 2px solid rgba(102, 126, 234, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 12px;
       margin-bottom: 16px;
-      background: rgba(255, 255, 255, 0.7);
+      background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75));
       color: #2d3748;
       font-weight: 600;
       letter-spacing: 1px;
+      box-shadow:
+        0 4px 24px rgba(102, 126, 234, 0.1),
+        inset 0 1px 0 rgba(255,255,255,1),
+        inset 0 2px 8px rgba(102, 126, 234, 0.05);
+      backdrop-filter: blur(15px);
     }
 
     .dialpad {
@@ -944,26 +949,49 @@
       padding: 14px;
       font-size: 20px;
       font-weight: 600;
-      background: rgba(102, 126, 234, 0.1);
-      border: 2px solid rgba(102, 126, 234, 0.3);
+      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+      border: 1px solid rgba(255,255,255,0.5);
       border-radius: 50%;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       color: #667eea;
       display: flex;
       align-items: center;
       justify-content: center;
       aspect-ratio: 1;
+      box-shadow:
+        0 8px 32px rgba(102, 126, 234, 0.15),
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -2px 4px rgba(102, 126, 234, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .dial-btn::before {
+      content: '';
+      position: absolute;
+      top: 10%;
+      left: 10%;
+      width: 80%;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), transparent);
+      border-radius: 50% 50% 50% 50%;
+      opacity: 0.6;
     }
 
     .dial-btn:hover {
-      background: rgba(102, 126, 234, 0.2);
-      transform: scale(1.05);
-      border-color: rgba(102, 126, 234, 0.5);
+      background: linear-gradient(145deg, rgba(255,255,255,1), rgba(102,126,234,0.1));
+      transform: translateY(-2px) scale(1.02);
+      box-shadow:
+        0 12px 48px rgba(102, 126, 234, 0.25),
+        inset 0 1px 0 rgba(255,255,255,1),
+        inset 0 -2px 4px rgba(102, 126, 234, 0.15);
     }
 
     .dial-btn:active {
-      transform: scale(0.95);
+      transform: translateY(0) scale(0.98);
+      box-shadow:
+        0 4px 16px rgba(102, 126, 234, 0.2),
+        inset 0 2px 4px rgba(102, 126, 234, 0.2);
     }
 
     .call-controls {
@@ -975,54 +1003,75 @@
     .call-btn {
       flex: 1;
       padding: 14px;
-      background: rgba(34, 197, 94, 0.9);
+      background: linear-gradient(145deg, rgba(34, 197, 94, 1), rgba(22, 163, 74, 0.95));
       color: white;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow:
+        0 8px 24px rgba(34, 197, 94, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .call-btn:hover {
-      background: rgba(34, 197, 94, 1);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+      background: linear-gradient(145deg, rgba(34, 197, 94, 1), rgba(34, 197, 94, 1));
+      transform: translateY(-2px) scale(1.02);
+      box-shadow:
+        0 12px 32px rgba(34, 197, 94, 0.4),
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .call-btn:active {
-      transform: translateY(0);
+      transform: translateY(0) scale(0.98);
+      box-shadow:
+        0 4px 16px rgba(34, 197, 94, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .call-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none !important;
     }
 
     .hangup-btn {
       flex: 1;
       padding: 14px;
-      background: rgba(239, 68, 68, 0.9);
+      background: linear-gradient(145deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 0.95));
       color: white;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow:
+        0 8px 24px rgba(239, 68, 68, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .hangup-btn:hover {
-      background: rgba(239, 68, 68, 1);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+      background: linear-gradient(145deg, rgba(239, 68, 68, 1), rgba(239, 68, 68, 1));
+      transform: translateY(-2px) scale(1.02);
+      box-shadow:
+        0 12px 32px rgba(239, 68, 68, 0.4),
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .hangup-btn:active {
-      transform: translateY(0);
+      transform: translateY(0) scale(0.98);
+      box-shadow:
+        0 4px 16px rgba(239, 68, 68, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .clear-btn {
