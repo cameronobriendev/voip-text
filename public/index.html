@@ -2253,14 +2253,33 @@
       actuallyMakeCall();
     };
 
+    // Format phone number for North America dialing
+    function formatForDialing(phoneNumber) {
+      // Strip all non-digit characters
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+      // Handle North American numbers (10 or 11 digits)
+      if (digitsOnly.length === 10) {
+        // 10 digits: add country code +1
+        return '1' + digitsOnly;
+      } else if (digitsOnly.length === 11 && digitsOnly[0] === '1') {
+        // 11 digits starting with 1: already has country code
+        return digitsOnly;
+      } else {
+        // Other lengths: return as-is (for special codes like *97, etc.)
+        return digitsOnly;
+      }
+    }
+
     // Make outbound call (actual implementation)
     function actuallyMakeCall() {
       const phoneNumber = document.getElementById('phoneDisplay').value.trim();
+      const formattedNumber = formatForDialing(phoneNumber);
 
       try {
-        console.log(`[Phone] Calling ${phoneNumber}...`);
+        console.log(`[Phone] Calling ${formattedNumber} (original: ${phoneNumber})...`);
 
-        const target = 'sip:' + phoneNumber + '@vancouver3.voip.ms';
+        const target = 'sip:' + formattedNumber + '@vancouver3.voip.ms';
 
         const options = {
           sessionDescriptionHandlerOptions: {
@@ -2301,8 +2320,8 @@
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
 
-          // Save call history
-          saveCallHistory(phoneNumber, duration, 'completed');
+          // Save call history with formatted number
+          saveCallHistory(formattedNumber, duration, 'completed');
 
           currentSession = null;
           callStartTime = null;
@@ -2315,8 +2334,8 @@
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
 
-          // Save call history
-          saveCallHistory(phoneNumber, 0, 'failed');
+          // Save call history with formatted number
+          saveCallHistory(formattedNumber, 0, 'failed');
 
           currentSession = null;
           callStartTime = null;
