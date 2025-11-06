@@ -907,6 +907,20 @@
     </div>
   </div>
 
+  <!-- Voicemail Warning Modal -->
+  <div class="modal-overlay" id="voicemailWarningModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚠️ Warning</div>
+        <div class="modal-subtitle">Are you sure you want to expose your ears to this?</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeVoicemailWarning()">Nevermind</button>
+        <button class="modal-btn modal-btn-primary" onclick="confirmPlayVoicemail()">I'm Ready</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentUser = null;
     let currentContact = null;
@@ -1215,7 +1229,7 @@
           label = `${name} • `;
         }
         const voicemailLink = msg.voicemail_blob_url
-          ? `<div style="margin-top: 8px;"><a href="${escapeHtml(msg.voicemail_blob_url)}" target="_blank" rel="noopener" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
+          ? `<div style="margin-top: 8px;"><a href="#" onclick="showVoicemailWarning('${escapeHtml(msg.voicemail_blob_url)}'); return false;" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
           : '';
 
         return `
@@ -1362,6 +1376,26 @@
       }
 
       pendingDeleteContactId = null;
+    };
+
+    // Voicemail warning modal functions
+    let pendingVoicemailUrl = null;
+
+    window.showVoicemailWarning = function(url) {
+      pendingVoicemailUrl = url;
+      document.getElementById('voicemailWarningModal').classList.add('show');
+    };
+
+    window.closeVoicemailWarning = function() {
+      document.getElementById('voicemailWarningModal').classList.remove('show');
+      pendingVoicemailUrl = null;
+    };
+
+    window.confirmPlayVoicemail = function() {
+      if (pendingVoicemailUrl) {
+        window.open(pendingVoicemailUrl, '_blank');
+        closeVoicemailWarning();
+      }
     };
 
     // New message button - show contacts modal
