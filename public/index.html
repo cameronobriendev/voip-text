@@ -2316,7 +2316,7 @@
         const formattedPhone = formatPhoneDisplay(phone);
 
         option.value = phone;
-        option.textContent = `${name} - ${formattedPhone}`;
+        option.textContent = name;
         selector.appendChild(option);
       });
     }
@@ -2502,10 +2502,11 @@
       }
 
       // Find contact name if it exists
-      const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === phoneNumber.replace(/\D/g, ''));
-      const displayName = contact ? (contact.contact_name || contact.name) : phoneNumber;
+      const cleanedNumber = phoneNumber.replace(/\D/g, '');
+      const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === cleanedNumber);
+      const displayName = contact ? (contact.contact_name || contact.name || contact.phone_number) : formatPhoneDisplay(cleanedNumber);
 
-      console.log('[Phone] Showing call confirmation for:', displayName);
+      console.log('[Phone] Showing call confirmation for:', displayName, '(contact found:', !!contact, ')');
 
       document.getElementById('callConfirmText').textContent =
         `Are you sure you want to talk to ${displayName}?`;
