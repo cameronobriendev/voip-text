@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
     console.log(`[Voicemail Sync] Found ${data.messages.length} voicemails in voip.ms`);
 
-    // Step 2: Check which voicemails we already have
+    // Step 2: Check which voicemails we already have (from messages table)
     const existingVoicemails = await sql`
       SELECT voicemail_message_num
       FROM messages
@@ -59,7 +59,53 @@ export default async function handler(req, res) {
       existingVoicemails.map(v => v.voicemail_message_num)
     );
 
-    console.log(`[Voicemail Sync] Already have ${existingMessageNums.size} voicemails in database`);
+    // Also check voicemail_seen table for bootstrap entries
+    try {
+      const seenVoicemails = await sql`
+        SELECT message_num FROM voicemail_seen
+      `;
+      seenVoicemails.forEach(v => existingMessageNums.add(v.message_num));
+    } catch (error) {
+      // Table doesn't exist yet, that's fine
+      console.log('[Voicemail Sync] voicemail_seen table not found (will be created on first run)');
+    }
+
+    console.log(`[Voicemail Sync] Already have ${existingMessageNums.size} voicemails tracked`);
+
+    // BOOTSTRAP: If this is the first sync (no voicemails in database),
+    // mark all current voicemails as "seen" without processing them.
+    // This prevents flooding the system with old voicemails.
+    if (existingMessageNums.size === 0 && data.messages.length > 0) {
+      console.log(`[Voicemail Sync] BOOTSTRAP MODE - Marking ${data.messages.length} existing voicemails as seen`);
+
+      // Create a special tracking table for seen voicemail message numbers
+      await sql`
+        CREATE TABLE IF NOT EXISTS voicemail_seen (
+          message_num VARCHAR(20) PRIMARY KEY,
+          seen_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      // Insert all current message_nums as "seen"
+      for (const vm of data.messages) {
+        await sql`
+          INSERT INTO voicemail_seen (message_num)
+          VALUES (${vm.message_num})
+          ON CONFLICT (message_num) DO NOTHING
+        `;
+        existingMessageNums.add(vm.message_num);
+      }
+
+      console.log('[Voicemail Sync] Bootstrap complete. Future syncs will only process new voicemails.');
+
+      return res.status(200).json({
+        success: true,
+        newVoicemails: [],
+        total: 0,
+        bootstrapped: true,
+        message: `Marked ${data.messages.length} existing voicemails as seen. Future page loads will check for new voicemails only.`
+      });
+    }
 
     // Step 3: Process new voicemails
     const voicemailsToProcess = data.messages.filter(
@@ -234,6 +280,13 @@ export default async function handler(req, res) {
         `;
 
         const newMessage = messages[0];
+
+        // Also mark as seen in tracking table
+        await sql`
+          INSERT INTO voicemail_seen (message_num)
+          VALUES (${message_num})
+          ON CONFLICT (message_num) DO NOTHING
+        `;
 
         console.log(`[Voicemail Sync] Stored voicemail ${message_num} in database`);
 
