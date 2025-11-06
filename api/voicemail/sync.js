@@ -286,29 +286,32 @@ export default async function handler(req, res) {
           const FormData = (await import('form-data')).default;
           const formData = new FormData();
 
-          // Append file as Buffer with options
+          // Append audio buffer as file with proper options
           formData.append('file', audioBuffer, {
             filename: 'voicemail.mp3',
-            contentType: 'audio/mpeg'
+            contentType: 'audio/mpeg',
+            knownLength: audioBuffer.length
           });
           formData.append('model', 'whisper-1');
-          formData.append('response_format', 'verbose_json'); // Get confidence score
+          formData.append('response_format', 'text');
 
-          // Call OpenAI Whisper API
+          // Call OpenAI Whisper API - pass formData directly
           const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-              ...formData.getHeaders() // CRITICAL: includes Content-Type with boundary
+              ...formData.getHeaders()
             },
             body: formData
           });
 
           if (whisperResponse.ok) {
-            const result = await whisperResponse.json();
-            transcription = result.text || 'Listen to Voicemail 👇';
-            // Whisper doesn't provide confidence in the same way, but we can use it from segments if needed
-            console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
+            transcription = await whisperResponse.text();
+            if (transcription && transcription.trim()) {
+              console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
+            } else {
+              transcription = 'Listen to Voicemail 👇';
+            }
           } else {
             const error = await whisperResponse.text();
             console.error(`[Voicemail Sync] Whisper API error: ${error}`);
