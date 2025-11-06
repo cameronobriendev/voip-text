@@ -1017,11 +1017,7 @@
   </style>
 
   <!-- JsSIP for WebRTC calling (local copy) -->
-  <script
-    src="/libs/jssip.min.js"
-    onload="console.log('[Phone] JsSIP loaded successfully, version:', JsSIP.version); if (typeof initializeSIP === 'function') initializeSIP();"
-    onerror="console.error('[Phone] Failed to load JsSIP library');">
-  </script>
+  <script src="/libs/jssip.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -2466,8 +2462,13 @@
       }
     }
 
-    // Note: initializeSIP() is called by the JsSIP script tag's onload handler
-    // This ensures JsSIP is fully loaded before we try to use it
+    // Initialize SIP after all functions are defined and JsSIP is loaded
+    if (typeof JsSIP !== 'undefined') {
+      console.log('[Phone] JsSIP loaded, version:', JsSIP.version);
+      initializeSIP();
+    } else {
+      console.error('[Phone] JsSIP not loaded - phone dialer will not work');
+    }
 
     // ============================================
     // END PHONE DIALER
