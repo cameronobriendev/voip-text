@@ -164,8 +164,8 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Store with placeholder - transcription will update via callback
-        const transcription = '[Transcribing voicemail...]';
+        // Store with placeholder - transcription feature coming soon
+        const transcription = 'Listen to Voicemail 👇';
         const confidence = null;
 
         // Send to transcription service with callback (don't wait)
