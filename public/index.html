@@ -1014,6 +1014,22 @@
       background: rgba(239, 68, 68, 0.2);
       color: #ef4444;
     }
+
+    /* Pulsing animation for ringing */
+    @keyframes phonePulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px 10px rgba(102, 126, 234, 0);
+      }
+    }
+
+    .phone-ringing {
+      animation: phonePulse 1.5s ease-in-out infinite;
+    }
   </style>
 
   <!-- JsSIP for WebRTC calling (local copy) -->
@@ -2413,6 +2429,14 @@
         currentSession.on('progress', (event) => {
           console.log('[Phone] 📞 Call progress (ringing)');
           updateCallStatus('Ringing...', 'calling');
+
+          // Mute early media to prevent ringback audio feedback
+          const remoteAudio = document.getElementById('remoteAudio');
+          remoteAudio.volume = 0;
+
+          // Add pulsing animation to phone button
+          const phoneToggle = document.getElementById('phoneToggle');
+          phoneToggle.classList.add('phone-ringing');
         });
 
         currentSession.on('accepted', (event) => {
@@ -2427,6 +2451,13 @@
           if (remoteStream) {
             remoteAudio.srcObject = remoteStream;
           }
+
+          // Unmute audio for actual call
+          remoteAudio.volume = 1;
+
+          // Remove pulsing animation
+          const phoneToggle = document.getElementById('phoneToggle');
+          phoneToggle.classList.remove('phone-ringing');
         });
 
         currentSession.on('ended', (event) => {
@@ -2435,6 +2466,10 @@
           updateCallStatus('Call ended', '');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
+
+          // Remove pulsing animation
+          const phoneToggle = document.getElementById('phoneToggle');
+          phoneToggle.classList.remove('phone-ringing');
 
           // Save call history with formatted number
           console.log('[Phone] Saving call history...');
@@ -2451,6 +2486,10 @@
           updateCallStatus('Call failed: ' + reason, 'error');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
+
+          // Remove pulsing animation
+          const phoneToggle = document.getElementById('phoneToggle');
+          phoneToggle.classList.remove('phone-ringing');
 
           // Save call history with formatted number
           saveCallHistory(formattedNumber, 0, 'failed');
