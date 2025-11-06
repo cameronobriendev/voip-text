@@ -55,6 +55,11 @@ export default async function handler(
   }
 
   try {
+    // Log the ENTIRE webhook payload for debugging
+    console.log('=== FULL WEBHOOK PAYLOAD ===');
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log('=== END PAYLOAD ===');
+
     // Resend sends webhook with data nested under 'data' property
     const { data } = req.body;
 
@@ -67,17 +72,6 @@ export default async function handler(
     }
 
     const { from, subject, text, html, attachments } = data;
-
-    console.log('Received voicemail webhook:', {
-      from,
-      subject,
-      hasText: !!text,
-      hasHtml: !!html,
-      textLength: text?.length || 0,
-      htmlLength: html?.length || 0,
-      attachmentsCount: attachments?.length || 0,
-      dataKeys: Object.keys(data)
-    });
 
     // Only process emails from voip.ms voicemail system or cameron@birdmail.ca (for testing)
     const allowedSenders = ['noreply@voipinterface.net', 'cameron@birdmail.ca'];
