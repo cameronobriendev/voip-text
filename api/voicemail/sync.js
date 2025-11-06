@@ -283,24 +283,20 @@ export default async function handler(req, res) {
         let confidence = null;
 
         try {
-          const FormData = (await import('form-data')).default;
+          // Use native FormData (matches Tracker implementation)
           const formData = new FormData();
 
-          // Append audio buffer as file with proper options
-          formData.append('file', audioBuffer, {
-            filename: 'voicemail.mp3',
-            contentType: 'audio/mpeg',
-            knownLength: audioBuffer.length
-          });
+          // Create a blob from the audio buffer (like Tracker does)
+          const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+          formData.append('file', blob, 'voicemail.mp3');
           formData.append('model', 'whisper-1');
           formData.append('response_format', 'text');
 
-          // Call OpenAI Whisper API - pass formData directly
+          // Call OpenAI Whisper API (no .getHeaders() needed with native FormData)
           const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-              ...formData.getHeaders()
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: formData
           });
