@@ -164,43 +164,45 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Store with placeholder - transcription feature coming soon
-        const transcription = 'Listen to Voicemail 👇';
+        // Transcribe with OpenAI Whisper API (direct call, synchronous)
+        console.log(`[Voicemail Sync] Transcribing voicemail with Whisper API...`);
+        let transcription = 'Listen to Voicemail 👇'; // fallback
         const confidence = null;
 
-        // Send to transcription service with callback (don't wait)
-        console.log(`[Voicemail Sync] Triggering transcription job...`);
-        const callbackUrl = `https://sms.birdmail.ca/api/webhooks/transcription-callback`;
+        try {
+          // Create FormData for Whisper API
+          const FormData = (await import('form-data')).default;
+          const formData = new FormData();
 
-        fetch(blob.url)
-          .then(r => r.arrayBuffer())
-          .then(async audioData => {
-            const FormData = (await import('form-data')).default;
-            const formData = new FormData();
-            formData.append('audio', Buffer.from(audioData), {
-              filename: 'voicemail.mp3',
-              contentType: 'audio/mpeg',
-            });
-            formData.append('username', `voicemail-${message_num}`);
-            formData.append('callbackUrl', callbackUrl);
-
-            return fetch('http://do.brasshelm.com:3001/upload', {
-              method: 'POST',
-              body: formData,
-              headers: formData.getHeaders(),
-            });
-          })
-          .then(r => r.json())
-          .then(result => {
-            if (result.success) {
-              console.log(`[Voicemail Sync] Transcription job ${result.jobId} started for message ${message_num}`);
-            } else {
-              console.error(`[Voicemail Sync] Transcription failed for ${message_num}`);
-            }
-          })
-          .catch(err => {
-            console.error(`[Voicemail Sync] Transcription error for ${message_num}:`, err.message);
+          // Append audio file
+          formData.append('file', audioBuffer, {
+            filename: 'voicemail.mp3',
+            contentType: 'audio/mpeg',
           });
+          formData.append('model', 'whisper-1');
+          formData.append('response_format', 'text');
+
+          // Call OpenAI Whisper API
+          const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+            body: formData
+          });
+
+          if (whisperResponse.ok) {
+            transcription = await whisperResponse.text();
+            console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
+          } else {
+            const error = await whisperResponse.text();
+            console.error(`[Voicemail Sync] Whisper API error: ${error}`);
+            // Keep fallback transcription
+          }
+        } catch (error) {
+          console.error(`[Voicemail Sync] Transcription error:`, error.message);
+          // Keep fallback transcription
+        }
 
         // Parse duration (format: "00:00:08" → seconds)
         const durationParts = duration.split(':').map(Number);
