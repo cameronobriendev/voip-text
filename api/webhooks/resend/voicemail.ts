@@ -68,6 +68,17 @@ export default async function handler(
 
     const { from, subject, text, html, attachments } = data;
 
+    console.log('Received voicemail webhook:', {
+      from,
+      subject,
+      hasText: !!text,
+      hasHtml: !!html,
+      textLength: text?.length || 0,
+      htmlLength: html?.length || 0,
+      attachmentsCount: attachments?.length || 0,
+      dataKeys: Object.keys(data)
+    });
+
     // Only process emails from voip.ms voicemail system or cameron@birdmail.ca (for testing)
     const allowedSenders = ['noreply@voipinterface.net', 'cameron@birdmail.ca'];
     const isAllowedSender = allowedSenders.some(allowed => from.includes(allowed));
@@ -82,6 +93,15 @@ export default async function handler(
 
     // Parse voicemail data from email body
     const emailText = text || html || '';
+
+    if (!emailText) {
+      console.error('Email body is empty. Available data:', Object.keys(data));
+      return res.status(400).json({
+        success: false,
+        error: 'Email body is empty - check Resend inbound settings',
+      });
+    }
+
     const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(emailText);
 
     if (!phoneNumber || !transcription) {
