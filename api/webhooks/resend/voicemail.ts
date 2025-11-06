@@ -55,21 +55,25 @@ export default async function handler(
   }
 
   try {
-    const webhook = req.body as ResendEmailWebhook;
+    // Resend sends webhook with data nested under 'data' property
+    const { data } = req.body;
 
-    if (!webhook.from || !webhook.to || !webhook.text) {
-      console.error('Invalid webhook payload:', webhook);
+    if (!data || !data.from || !data.subject) {
+      console.error('Invalid webhook payload:', req.body);
       return res.status(400).json({
         success: false,
         error: 'Invalid webhook payload',
       });
     }
 
-    // Parse voicemail data from email
-    const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(webhook.text);
+    const { from, subject, text, html, attachments } = data;
+
+    // Parse voicemail data from email body
+    const emailText = text || html || '';
+    const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(emailText);
 
     if (!phoneNumber || !transcription) {
-      console.error('Failed to parse voicemail email:', webhook.text.substring(0, 200));
+      console.error('Failed to parse voicemail email:', emailText.substring(0, 200));
       return res.status(400).json({
         success: false,
         error: 'Failed to parse voicemail data from email',
@@ -80,7 +84,7 @@ export default async function handler(
     const voipmsDid = process.env.VOIPMS_DID || '';
 
     // Get MP3 attachment
-    if (!webhook.attachments || webhook.attachments.length === 0) {
+    if (!attachments || attachments.length === 0) {
       console.error('No MP3 attachment found in voicemail email');
       return res.status(400).json({
         success: false,
@@ -88,8 +92,8 @@ export default async function handler(
       });
     }
 
-    const mp3Attachment = webhook.attachments.find(att =>
-      att.contentType === 'audio/mpeg' || att.filename.endsWith('.mp3')
+    const mp3Attachment = attachments.find((att: any) =>
+      att.contentType === 'audio/mpeg' || att.filename?.endsWith('.mp3')
     );
 
     if (!mp3Attachment) {
