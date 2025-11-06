@@ -1016,11 +1016,11 @@
     }
   </style>
 
-  <!-- JsSIP for WebRTC calling -->
+  <!-- JsSIP for WebRTC calling (local copy) -->
   <script
-    src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.js"
+    src="JsSIP-3.10.1/dist/jssip.min.js"
     onload="console.log('[Phone] JsSIP loaded successfully, version:', JsSIP.version); if (typeof initializeSIP === 'function') initializeSIP();"
-    onerror="console.error('[Phone] Failed to load JsSIP from CDN');">
+    onerror="console.error('[Phone] Failed to load local JsSIP file');">
   </script>
 </head>
 <body>
