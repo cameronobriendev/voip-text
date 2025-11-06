@@ -2074,6 +2074,7 @@
     let userAgent = null;
     let currentSession = null;
     let callStartTime = null;
+    let sipServerConfig = null; // Store SIP server config for making calls
 
     // Toggle phone sidebar
     function togglePhone() {
@@ -2201,7 +2202,7 @@
     }
 
     // Initialize JsSIP User Agent
-    function initializeSIP(retryCount = 0) {
+    async function initializeSIP(retryCount = 0) {
       const maxRetries = 5;
 
       console.log(`[Phone] Attempting to initialize SIP... (attempt ${retryCount + 1}/${maxRetries + 1})`);
@@ -2216,28 +2217,48 @@
             return;
           } else {
             console.error('[Phone] JsSIP library failed to load after multiple attempts');
-            console.error('[Phone] Check if https://unpkg.com/jssip@3.10.1/lib-es5/JsSIP.js is accessible');
             updateCallStatus('SIP library not available', 'error');
             return;
           }
         }
 
-        console.log('[Phone] JsSIP loaded successfully, initializing...');
+        console.log('[Phone] JsSIP loaded successfully, fetching SIP config...');
 
-        const socket = new JsSIP.WebSocketInterface('wss://vancouver3.voip.ms:5061');
+        // Fetch SIP configuration from server
+        const sipConfigResponse = await fetch('/api/config/sip');
+        if (!sipConfigResponse.ok) {
+          throw new Error('Failed to fetch SIP configuration');
+        }
+
+        const sipConfigData = await sipConfigResponse.json();
+        if (!sipConfigData.success) {
+          throw new Error(sipConfigData.error || 'SIP configuration error');
+        }
+
+        const sipConfig = sipConfigData.config;
+        sipServerConfig = sipConfig; // Store globally for making calls
+
+        console.log('[Phone] SIP config loaded:', {
+          server: sipConfig.server,
+          port: sipConfig.port,
+          user: sipConfig.user
+        });
+
+        const wsUrl = `wss://${sipConfig.server}:${sipConfig.port}`;
+        const socket = new JsSIP.WebSocketInterface(wsUrl);
 
         const configuration = {
           sockets: [socket],
-          uri: 'sip:486180_baresip@vancouver3.voip.ms',
-          authorization_user: '486180_baresip',
-          password: ')NRxJ4#?x9G*=r/',
-          display_name: userDID || '7804825026',
+          uri: `sip:${sipConfig.user}@${sipConfig.server}`,
+          authorization_user: sipConfig.user,
+          password: sipConfig.password,
+          display_name: sipConfig.displayName,
           session_timers: false
         };
 
         console.log('[Phone] Creating JsSIP User Agent with config:', {
           uri: configuration.uri,
-          socket: 'wss://vancouver3.voip.ms:5061'
+          socket: wsUrl
         });
 
         userAgent = new JsSIP.UA(configuration);
@@ -2349,7 +2370,8 @@
 
       try {
 
-        const target = 'sip:' + formattedNumber + '@vancouver3.voip.ms';
+        const sipServer = sipServerConfig?.server || 'vancouver3.voip.ms';
+        const target = `sip:${formattedNumber}@${sipServer}`;
         console.log('[Phone] SIP target:', target);
 
         const options = {
