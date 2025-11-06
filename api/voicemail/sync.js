@@ -252,10 +252,11 @@ export default async function handler(req, res) {
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         const monthNum = monthNames.indexOf(month);
 
-        // Create date object (treated as local time on server which is UTC)
+        // Create date with the time values (treating them as if they were UTC)
         const vmDate = new Date(Date.UTC(parseInt(year), monthNum, parseInt(day), hour, parseInt(min), parseInt(sec)));
-        // Subtract 7 hours to convert Mountain Time to actual UTC (MST = UTC-7)
-        const utcDate = new Date(vmDate.getTime() - (7 * 60 * 60 * 1000));
+        // Mountain Time is UTC-7, so to convert TO UTC we ADD 7 hours
+        // (7:35 PM MT = 19:35 MT = 02:35 UTC next day)
+        const utcDate = new Date(vmDate.getTime() + (7 * 60 * 60 * 1000));
 
         // Store voicemail in database
         const messages = await sql`
