@@ -891,6 +891,8 @@
     let contacts = [];
     let pendingMessage = '';
     let userDID = null;
+    let lastSeenMessageIds = new Set(); // Track message IDs we've already seen
+    let pollingInterval = null;
 
     // Toast notification system
     function showToast(message, type = 'success', duration = 4000) {
@@ -1490,11 +1492,81 @@
       return div.innerHTML;
     }
 
+    // Poll for new messages
+    async function pollForNewMessages() {
+      try {
+        const response = await fetch('/api/messages');
+        const data = await response.json();
+
+        if (data.success && data.conversations) {
+          const newMessages = [];
+
+          // Check for messages we haven't seen before
+          data.conversations.forEach(conv => {
+            if (!lastSeenMessageIds.has(conv.message_id)) {
+              // This is a new message
+              newMessages.push(conv);
+              lastSeenMessageIds.add(conv.message_id);
+            }
+          });
+
+          // Show toast for new INBOUND messages only (not our own sent messages)
+          newMessages.forEach(conv => {
+            if (conv.direction === 'inbound') {
+              const name = conv.contact_name || conv.phone_number;
+              const preview = conv.content.length > 50 ? conv.content.substring(0, 50) + '...' : conv.content;
+              showToast(`${name}: ${preview}`, 'info', 6000);
+            }
+          });
+
+          // Update conversation list if we got new messages
+          if (newMessages.length > 0) {
+            contacts = data.conversations;
+            renderConversations(contacts);
+
+            // If viewing a conversation that got a new message, refresh it
+            if (currentContact && newMessages.some(m => m.contact_id === currentContact.id)) {
+              await loadMessages(currentContact.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        // Don't show error toast, just log it
+      }
+    }
+
+    // Start polling for new messages
+    function startPolling() {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+
+      // Poll every 5 seconds
+      pollingInterval = setInterval(pollForNewMessages, 5000);
+    }
+
+    // Stop polling
+    function stopPolling() {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    }
+
     // Initialize app
     async function init() {
       const authenticated = await checkAuth();
       if (authenticated) {
         await loadConversations();
+
+        // Track all initial message IDs so we don't show toasts for them
+        contacts.forEach(conv => {
+          lastSeenMessageIds.add(conv.message_id);
+        });
+
+        // Start polling for new messages
+        startPolling();
       }
     }
 
