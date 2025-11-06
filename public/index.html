@@ -401,6 +401,19 @@
       color: rgba(255, 255, 255, 0.9);
       font-size: 14px;
       text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .chat-header-phone:hover {
+      color: white;
+      transform: scale(1.02);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .chat-header-phone:active {
+      transform: scale(0.98);
     }
 
     .delete-conversation-btn {
@@ -827,13 +840,28 @@
       right: 0;
     }
 
-    .phone-sidebar h3 {
-      font-size: 18px;
-      color: #667eea;
-      margin: 0 0 20px 0;
-      padding-bottom: 12px;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    .phone-contact-selector {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.7);
+      color: #2d3748;
       font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .phone-contact-selector:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+
+    .phone-contact-selector:focus {
+      outline: none;
+      border-color: #667eea;
     }
 
     .phone-display {
@@ -869,17 +897,9 @@
       transition: all 0.2s;
       color: #667eea;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       aspect-ratio: 1;
-    }
-
-    .dial-btn span {
-      font-size: 10px;
-      color: rgba(102, 126, 234, 0.7);
-      font-weight: 500;
-      margin-top: 2px;
     }
 
     .dial-btn:hover {
@@ -1143,13 +1163,30 @@
     </div>
   </div>
 
+  <!-- Call Confirmation Modal -->
+  <div class="modal-overlay" id="callConfirmModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">📞 Call Confirmation</div>
+        <div class="modal-subtitle" id="callConfirmText">Are you sure you actually want to talk to this person?</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeCallConfirm()">Nevermind</button>
+        <button class="modal-btn modal-btn-primary" onclick="confirmCall()">Yes, Call Them</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Phone Dialer -->
   <button class="phone-toggle" id="phoneToggle" onclick="togglePhone()">
     <span class="icon-text">📞</span>
   </button>
 
   <div class="phone-sidebar" id="phoneSidebar">
-    <h3>Phone</h3>
+    <!-- Contact selector -->
+    <select class="phone-contact-selector" id="phoneContactSelector" onchange="selectContactForCall()">
+      <option value="">Select a contact...</option>
+    </select>
 
     <!-- Phone number display -->
     <input type="text" class="phone-display" id="phoneDisplay" readonly value="" placeholder="Enter number">
@@ -1157,22 +1194,22 @@
     <!-- Dialpad (3x4 grid) -->
     <div class="dialpad">
       <button class="dial-btn" onclick="dialDigit('1')">1</button>
-      <button class="dial-btn" onclick="dialDigit('2')">2<span>ABC</span></button>
-      <button class="dial-btn" onclick="dialDigit('3')">3<span>DEF</span></button>
-      <button class="dial-btn" onclick="dialDigit('4')">4<span>GHI</span></button>
-      <button class="dial-btn" onclick="dialDigit('5')">5<span>JKL</span></button>
-      <button class="dial-btn" onclick="dialDigit('6')">6<span>MNO</span></button>
-      <button class="dial-btn" onclick="dialDigit('7')">7<span>PQRS</span></button>
-      <button class="dial-btn" onclick="dialDigit('8')">8<span>TUV</span></button>
-      <button class="dial-btn" onclick="dialDigit('9')">9<span>WXYZ</span></button>
+      <button class="dial-btn" onclick="dialDigit('2')">2</button>
+      <button class="dial-btn" onclick="dialDigit('3')">3</button>
+      <button class="dial-btn" onclick="dialDigit('4')">4</button>
+      <button class="dial-btn" onclick="dialDigit('5')">5</button>
+      <button class="dial-btn" onclick="dialDigit('6')">6</button>
+      <button class="dial-btn" onclick="dialDigit('7')">7</button>
+      <button class="dial-btn" onclick="dialDigit('8')">8</button>
+      <button class="dial-btn" onclick="dialDigit('9')">9</button>
       <button class="dial-btn" onclick="dialDigit('*')">*</button>
-      <button class="dial-btn" onclick="dialDigit('0')">0<span>+</span></button>
+      <button class="dial-btn" onclick="dialDigit('0')">0</button>
       <button class="dial-btn" onclick="dialDigit('#')">#</button>
     </div>
 
     <!-- Call controls -->
     <div class="call-controls">
-      <button class="call-btn" id="callBtn" onclick="makeCall()">Call</button>
+      <button class="call-btn" id="callBtn" onclick="showCallConfirm()">Call</button>
       <button class="hangup-btn" id="hangupBtn" onclick="hangupCall()" style="display:none">Hang Up</button>
       <button class="clear-btn" onclick="clearDisplay()">Clear</button>
     </div>
@@ -1416,7 +1453,7 @@
             </div>
             <div>
               <div class="chat-header-name">${escapeHtml(currentContact.name)}</div>
-              <div class="chat-header-phone">${escapeHtml(currentContact.phone_number)}</div>
+              <div class="chat-header-phone" onclick="openDialerWithNumber('${escapeHtml(currentContact.phone_number)}')" title="Click to call">${escapeHtml(currentContact.phone_number)}</div>
             </div>
           </div>
           <button class="delete-conversation-btn" onclick="showDeleteModal()" title="Delete Conversation">
@@ -2042,9 +2079,67 @@
     function togglePhone() {
       const sidebar = document.getElementById('phoneSidebar');
       const toggle = document.getElementById('phoneToggle');
+      const isOpening = !sidebar.classList.contains('open');
+
       sidebar.classList.toggle('open');
       toggle.classList.toggle('open');
+
+      // Populate contact selector when opening
+      if (isOpening) {
+        populateContactSelector();
+      }
     }
+
+    // Open dialer with pre-populated number
+    window.openDialerWithNumber = function(phoneNumber) {
+      const sidebar = document.getElementById('phoneSidebar');
+      const toggle = document.getElementById('phoneToggle');
+
+      // Strip formatting and keep only digits
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+      // Open the dialer if not already open
+      if (!sidebar.classList.contains('open')) {
+        sidebar.classList.add('open');
+        toggle.classList.add('open');
+        populateContactSelector();
+      }
+
+      // Set the phone number
+      document.getElementById('phoneDisplay').value = digitsOnly;
+
+      // Reset contact selector to default
+      document.getElementById('phoneContactSelector').value = '';
+    };
+
+    // Populate contact selector dropdown
+    function populateContactSelector() {
+      const selector = document.getElementById('phoneContactSelector');
+
+      // Clear existing options (except the first one)
+      selector.innerHTML = '<option value="">Select a contact...</option>';
+
+      // Add contacts from the conversations list
+      contacts.forEach(contact => {
+        const option = document.createElement('option');
+        const name = contact.contact_name || contact.name || contact.phone_number;
+        const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
+
+        option.value = phone;
+        option.textContent = `${name} (${contact.phone_number})`;
+        selector.appendChild(option);
+      });
+    }
+
+    // Handle contact selection from dropdown
+    window.selectContactForCall = function() {
+      const selector = document.getElementById('phoneContactSelector');
+      const phoneNumber = selector.value;
+
+      if (phoneNumber) {
+        document.getElementById('phoneDisplay').value = phoneNumber;
+      }
+    };
 
     // Dial a digit
     function dialDigit(digit) {
@@ -2125,8 +2220,8 @@
       }
     }
 
-    // Make outbound call
-    function makeCall() {
+    // Show call confirmation modal
+    function showCallConfirm() {
       const phoneNumber = document.getElementById('phoneDisplay').value.trim();
       if (!phoneNumber) {
         updateCallStatus('Enter a number first', 'error');
@@ -2137,6 +2232,30 @@
         updateCallStatus('SIP not ready', 'error');
         return;
       }
+
+      // Find contact name if it exists
+      const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === phoneNumber);
+      const displayName = contact ? (contact.contact_name || contact.name) : phoneNumber;
+
+      document.getElementById('callConfirmText').textContent =
+        `Are you sure you actually want to talk to ${displayName}?`;
+      document.getElementById('callConfirmModal').classList.add('show');
+    }
+
+    // Close call confirmation modal
+    window.closeCallConfirm = function() {
+      document.getElementById('callConfirmModal').classList.remove('show');
+    };
+
+    // Confirm and make the call
+    window.confirmCall = function() {
+      closeCallConfirm();
+      actuallyMakeCall();
+    };
+
+    // Make outbound call (actual implementation)
+    function actuallyMakeCall() {
+      const phoneNumber = document.getElementById('phoneDisplay').value.trim();
 
       try {
         console.log(`[Phone] Calling ${phoneNumber}...`);
