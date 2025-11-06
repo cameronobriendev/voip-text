@@ -164,58 +164,43 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Send to transcription service
-        console.log(`[Voicemail Sync] Sending to transcription service...`);
-        const FormData = (await import('form-data')).default;
-        const formData = new FormData();
-        formData.append('audio', audioBuffer, {
-          filename: 'voicemail.mp3',
-          contentType: 'audio/mpeg',
-        });
-        formData.append('username', 'voicemail-system');
+        // Store with placeholder - transcription will update via callback
+        const transcription = '[Transcribing voicemail...]';
+        const confidence = null;
 
-        const transcriptionResponse = await fetch('http://do.brasshelm.com:3001/upload', {
-          method: 'POST',
-          body: formData,
-          headers: formData.getHeaders(),
-        });
+        // Send to transcription service with callback (don't wait)
+        console.log(`[Voicemail Sync] Triggering transcription job...`);
+        const callbackUrl = `https://sms.birdmail.ca/api/webhooks/transcription-callback`;
 
-        const transcriptionResult = await transcriptionResponse.json();
+        fetch(blob.url)
+          .then(r => r.arrayBuffer())
+          .then(async audioData => {
+            const FormData = (await import('form-data')).default;
+            const formData = new FormData();
+            formData.append('audio', Buffer.from(audioData), {
+              filename: 'voicemail.mp3',
+              contentType: 'audio/mpeg',
+            });
+            formData.append('username', `voicemail-${message_num}`);
+            formData.append('callbackUrl', callbackUrl);
 
-        if (!transcriptionResult.success || !transcriptionResult.jobId) {
-          console.error(`[Voicemail Sync] Transcription upload failed for ${message_num}`);
-          continue;
-        }
-
-        const jobId = transcriptionResult.jobId;
-        console.log(`[Voicemail Sync] Transcription job started: ${jobId}`);
-
-        // Poll for transcription result (max 60 seconds)
-        let transcription = null;
-        let confidence = null;
-        const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
-
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-
-          const resultResponse = await fetch(`http://do.brasshelm.com:3001/result/${jobId}`);
-
-          if (resultResponse.ok) {
-            const result = await resultResponse.json();
-
-            if (result.status === 'completed' && result.transcription) {
-              transcription = result.transcription;
-              confidence = result.confidence || null;
-              console.log(`[Voicemail Sync] Transcription completed (${confidence}% confidence)`);
-              break;
+            return fetch('http://do.brasshelm.com:3001/upload', {
+              method: 'POST',
+              body: formData,
+              headers: formData.getHeaders(),
+            });
+          })
+          .then(r => r.json())
+          .then(result => {
+            if (result.success) {
+              console.log(`[Voicemail Sync] Transcription job ${result.jobId} started for message ${message_num}`);
+            } else {
+              console.error(`[Voicemail Sync] Transcription failed for ${message_num}`);
             }
-          }
-        }
-
-        if (!transcription) {
-          console.error(`[Voicemail Sync] Transcription timeout for ${message_num}`);
-          transcription = '[Transcription in progress...]';
-        }
+          })
+          .catch(err => {
+            console.error(`[Voicemail Sync] Transcription error for ${message_num}:`, err.message);
+          });
 
         // Parse duration (format: "00:00:08" → seconds)
         const durationParts = duration.split(':').map(Number);

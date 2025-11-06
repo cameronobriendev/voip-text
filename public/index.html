@@ -1214,9 +1214,16 @@
           const name = currentContact.name || currentContact.phone_number;
           label = `${name} • `;
         }
+        const voicemailLink = msg.voicemail_blob_url
+          ? `<div style="margin-top: 8px;"><a href="${escapeHtml(msg.voicemail_blob_url)}" target="_blank" rel="noopener" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
+          : '';
+
         return `
           <div class="message ${msg.direction}">
-            <div class="message-bubble">${escapeHtml(msg.content)}</div>
+            <div class="message-bubble">
+              ${escapeHtml(msg.content)}
+              ${voicemailLink}
+            </div>
             <div class="message-timestamp">${label}${time}</div>
           </div>
         `;
