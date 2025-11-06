@@ -2,10 +2,8 @@ import { put } from '@vercel/blob';
 import { getDB } from '../db/client.js';
 import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../utils/phone.js';
 
-export const config = { runtime: 'edge' };
-
 /**
- * Voicemail sync endpoint
+ * Voicemail sync endpoint - Node.js Serverless
  *
  * Checks voip.ms API for new voicemails, transcribes them, and stores in database.
  * Called on page load to provide real-time voicemail notifications.
@@ -166,16 +164,20 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Transcribe with OpenAI Whisper API (EXACT same pattern as Tracker)
+        // Transcribe with OpenAI Whisper API (Node.js with form-data package)
         console.log(`[Voicemail Sync] Transcribing voicemail with Whisper API...`);
         let transcription = 'Listen to Voicemail 👇'; // fallback
         const confidence = null;
 
         try {
-          // Use native FormData/Blob (Edge runtime)
+          const FormData = (await import('form-data')).default;
           const formData = new FormData();
-          const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
-          formData.append('file', blob, 'voicemail.mp3');
+
+          // Append file as Buffer with options (matches Tracker pattern conceptually)
+          formData.append('file', audioBuffer, {
+            filename: 'voicemail.mp3',
+            contentType: 'audio/mpeg'
+          });
           formData.append('model', 'whisper-1');
           formData.append('response_format', 'text');
 
@@ -183,7 +185,8 @@ export default async function handler(req, res) {
           const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+              ...formData.getHeaders() // CRITICAL: includes Content-Type with boundary
             },
             body: formData
           });
