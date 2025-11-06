@@ -2248,8 +2248,13 @@
       }
     }
 
-    // Initialize SIP on page load
-    initializeSIP();
+    // Initialize SIP on page load (wait for SIP.js library to load)
+    window.addEventListener('load', () => {
+      // Give the SIP.js library a moment to initialize
+      setTimeout(() => {
+        initializeSIP();
+      }, 100);
+    });
 
     // ============================================
     // END PHONE DIALER
