@@ -1026,11 +1026,11 @@
     // Load conversations
     async function loadConversations() {
       try {
-        const response = await fetch('/api/contacts');
+        const response = await fetch('/api/messages');
         const data = await response.json();
 
-        if (data.success && data.contacts) {
-          contacts = data.contacts;
+        if (data.success && data.conversations) {
+          contacts = data.conversations;
           renderConversations(contacts);
         } else {
           document.getElementById('conversationsList').innerHTML = `
@@ -1064,29 +1064,41 @@
         return;
       }
 
-      container.innerHTML = contactsList.map(contact => `
-        <div class="conversation-item ${currentContact && currentContact.id === contact.id ? 'active' : ''}"
-             data-contact-id="${contact.id}"
-             onclick="selectContact('${contact.id}')">
-          <div class="contact-avatar" style="background: ${contact.avatar_color}">
-            ${contact.name.charAt(0).toUpperCase()}
-          </div>
-          <div class="conversation-details">
-            <div class="conversation-header">
-              <span class="contact-name">${escapeHtml(contact.name)}</span>
+      container.innerHTML = contactsList.map(conv => {
+        const time = conv.created_at ? new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const preview = conv.content ? (conv.content.length > 40 ? conv.content.substring(0, 40) + '...' : conv.content) : 'No messages yet';
+        const name = conv.contact_name || conv.name || conv.phone_number;
+
+        return `
+          <div class="conversation-item ${currentContact && currentContact.id === conv.contact_id ? 'active' : ''}"
+               data-contact-id="${conv.contact_id}"
+               onclick="selectContact('${conv.contact_id}')">
+            <div class="contact-avatar" style="background: ${conv.avatar_color}">
+              ${name.charAt(0).toUpperCase()}
             </div>
-            <div class="last-message">${escapeHtml(contact.phone_number)}</div>
+            <div class="conversation-details">
+              <div class="conversation-header">
+                <span class="contact-name">${escapeHtml(name)}</span>
+                ${time ? `<span class="message-time">${time}</span>` : ''}
+              </div>
+              <div class="last-message">${escapeHtml(preview)}</div>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // Select contact and load messages
     window.selectContact = async function(contactId) {
-      const contact = contacts.find(c => c.id === contactId);
-      if (!contact) return;
+      const conv = contacts.find(c => c.contact_id === contactId);
+      if (!conv) return;
 
-      currentContact = contact;
+      currentContact = {
+        id: conv.contact_id,
+        name: conv.contact_name || conv.name,
+        phone_number: conv.phone_number,
+        avatar_color: conv.avatar_color
+      };
       renderConversations(contacts); // Update active state
       await loadMessages(contactId);
     };
