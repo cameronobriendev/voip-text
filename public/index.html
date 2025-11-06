@@ -775,7 +775,229 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Phone Dialer */
+    .phone-toggle {
+      position: fixed;
+      right: 0;
+      top: 200px;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50% 0 0 50%;
+      box-shadow: -2px 4px 12px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 101;
+      font-size: 24px;
+      transition: right 0.3s ease;
+    }
+
+    .phone-toggle.open {
+      right: 320px;
+    }
+
+    .phone-toggle .icon-text {
+      transition: transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      display: inline-block;
+    }
+
+    .phone-sidebar {
+      position: fixed;
+      right: -320px;
+      top: 100px;
+      width: 320px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px 0 0 16px;
+      box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.15);
+      padding: 24px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      z-index: 100;
+      transition: right 0.3s ease;
+    }
+
+    .phone-sidebar.open {
+      right: 0;
+    }
+
+    .phone-sidebar h3 {
+      font-size: 18px;
+      color: #667eea;
+      margin: 0 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+      font-weight: 600;
+    }
+
+    .phone-display {
+      width: 100%;
+      padding: 16px;
+      font-size: 24px;
+      text-align: right;
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      color: #2d3748;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .dialpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .dial-btn {
+      position: relative;
+      padding: 20px;
+      font-size: 24px;
+      font-weight: 600;
+      background: rgba(102, 126, 234, 0.1);
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #667eea;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+    }
+
+    .dial-btn span {
+      font-size: 10px;
+      color: rgba(102, 126, 234, 0.7);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .dial-btn:hover {
+      background: rgba(102, 126, 234, 0.2);
+      transform: scale(1.05);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+
+    .dial-btn:active {
+      transform: scale(0.95);
+    }
+
+    .call-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .call-btn {
+      flex: 1;
+      padding: 16px;
+      background: rgba(34, 197, 94, 0.9);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .call-btn:hover {
+      background: rgba(34, 197, 94, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    }
+
+    .call-btn:active {
+      transform: translateY(0);
+    }
+
+    .call-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hangup-btn {
+      flex: 1;
+      padding: 16px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .hangup-btn:hover {
+      background: rgba(239, 68, 68, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    }
+
+    .hangup-btn:active {
+      transform: translateY(0);
+    }
+
+    .clear-btn {
+      flex: 1;
+      padding: 16px;
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+
+    .call-status {
+      padding: 12px;
+      text-align: center;
+      border-radius: 8px;
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      font-weight: 600;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .call-status.calling {
+      background: rgba(251, 191, 36, 0.2);
+      color: #f59e0b;
+    }
+
+    .call-status.connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .call-status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
   </style>
+
+  <!-- SIP.js for WebRTC calling -->
+  <script src="https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -920,6 +1142,47 @@
       </div>
     </div>
   </div>
+
+  <!-- Phone Dialer -->
+  <button class="phone-toggle" id="phoneToggle" onclick="togglePhone()">
+    <span class="icon-text">📞</span>
+  </button>
+
+  <div class="phone-sidebar" id="phoneSidebar">
+    <h3>Phone</h3>
+
+    <!-- Phone number display -->
+    <input type="text" class="phone-display" id="phoneDisplay" readonly value="" placeholder="Enter number">
+
+    <!-- Dialpad (3x4 grid) -->
+    <div class="dialpad">
+      <button class="dial-btn" onclick="dialDigit('1')">1</button>
+      <button class="dial-btn" onclick="dialDigit('2')">2<span>ABC</span></button>
+      <button class="dial-btn" onclick="dialDigit('3')">3<span>DEF</span></button>
+      <button class="dial-btn" onclick="dialDigit('4')">4<span>GHI</span></button>
+      <button class="dial-btn" onclick="dialDigit('5')">5<span>JKL</span></button>
+      <button class="dial-btn" onclick="dialDigit('6')">6<span>MNO</span></button>
+      <button class="dial-btn" onclick="dialDigit('7')">7<span>PQRS</span></button>
+      <button class="dial-btn" onclick="dialDigit('8')">8<span>TUV</span></button>
+      <button class="dial-btn" onclick="dialDigit('9')">9<span>WXYZ</span></button>
+      <button class="dial-btn" onclick="dialDigit('*')">*</button>
+      <button class="dial-btn" onclick="dialDigit('0')">0<span>+</span></button>
+      <button class="dial-btn" onclick="dialDigit('#')">#</button>
+    </div>
+
+    <!-- Call controls -->
+    <div class="call-controls">
+      <button class="call-btn" id="callBtn" onclick="makeCall()">Call</button>
+      <button class="hangup-btn" id="hangupBtn" onclick="hangupCall()" style="display:none">Hang Up</button>
+      <button class="clear-btn" onclick="clearDisplay()">Clear</button>
+    </div>
+
+    <!-- Call status -->
+    <div class="call-status" id="callStatus">Ready to call</div>
+  </div>
+
+  <!-- Hidden audio element for call audio -->
+  <audio id="remoteAudio" autoplay></audio>
 
   <script>
     let currentUser = null;
@@ -1766,6 +2029,231 @@
         startPolling();
       }
     }
+
+    // ============================================
+    // PHONE DIALER - SIP.js Integration
+    // ============================================
+
+    let userAgent = null;
+    let currentSession = null;
+    let callStartTime = null;
+
+    // Toggle phone sidebar
+    function togglePhone() {
+      const sidebar = document.getElementById('phoneSidebar');
+      const toggle = document.getElementById('phoneToggle');
+      sidebar.classList.toggle('open');
+      toggle.classList.toggle('open');
+    }
+
+    // Dial a digit
+    function dialDigit(digit) {
+      const display = document.getElementById('phoneDisplay');
+      display.value += digit;
+
+      // Send DTMF if in active call
+      if (currentSession && currentSession.isEstablished && currentSession.isEstablished()) {
+        try {
+          currentSession.dtmf(digit);
+        } catch (e) {
+          console.error('DTMF error:', e);
+        }
+      }
+    }
+
+    // Clear display
+    function clearDisplay() {
+      document.getElementById('phoneDisplay').value = '';
+    }
+
+    // Update call status
+    function updateCallStatus(message, statusClass = '') {
+      const statusEl = document.getElementById('callStatus');
+      statusEl.textContent = message;
+      statusEl.className = 'call-status ' + statusClass;
+    }
+
+    // Initialize SIP.js User Agent
+    function initializeSIP() {
+      try {
+        // Check if SIP.js is loaded
+        if (typeof SIP === 'undefined') {
+          console.error('SIP.js library not loaded');
+          updateCallStatus('SIP library not available', 'error');
+          return;
+        }
+
+        console.log('[Phone] Initializing SIP...');
+
+        const configuration = {
+          uri: 'sip:486180_baresip@vancouver3.voip.ms',
+          transportOptions: {
+            wsServers: ['wss://vancouver3.voip.ms:5061'],
+            traceSip: true
+          },
+          authorizationUsername: '486180_baresip',
+          authorizationPassword: ')NRxJ4#?x9G*=r/',
+          displayName: 'BirdText',
+          sessionDescriptionHandlerFactoryOptions: {
+            constraints: {
+              audio: true,
+              video: false
+            }
+          }
+        };
+
+        userAgent = new SIP.UA(configuration);
+
+        userAgent.on('registered', () => {
+          console.log('[Phone] SIP registered successfully');
+          updateCallStatus('Ready to call', '');
+        });
+
+        userAgent.on('registrationFailed', (cause) => {
+          console.error('[Phone] SIP registration failed:', cause);
+          updateCallStatus('Registration failed', 'error');
+        });
+
+        userAgent.on('unregistered', () => {
+          console.log('[Phone] SIP unregistered');
+          updateCallStatus('Not registered', 'error');
+        });
+
+      } catch (error) {
+        console.error('[Phone] SIP initialization error:', error);
+        updateCallStatus('Initialization failed', 'error');
+      }
+    }
+
+    // Make outbound call
+    function makeCall() {
+      const phoneNumber = document.getElementById('phoneDisplay').value.trim();
+      if (!phoneNumber) {
+        updateCallStatus('Enter a number first', 'error');
+        return;
+      }
+
+      if (!userAgent) {
+        updateCallStatus('SIP not ready', 'error');
+        return;
+      }
+
+      try {
+        console.log(`[Phone] Calling ${phoneNumber}...`);
+
+        const target = 'sip:' + phoneNumber + '@vancouver3.voip.ms';
+
+        const options = {
+          sessionDescriptionHandlerOptions: {
+            constraints: {
+              audio: true,
+              video: false
+            }
+          }
+        };
+
+        currentSession = userAgent.invite(target, options);
+        callStartTime = Date.now();
+
+        // Set up call event handlers
+        currentSession.on('progress', () => {
+          console.log('[Phone] Call progress (ringing)');
+          updateCallStatus('Ringing...', 'calling');
+        });
+
+        currentSession.on('accepted', () => {
+          console.log('[Phone] Call accepted');
+          updateCallStatus('Connected', 'connected');
+          document.getElementById('callBtn').style.display = 'none';
+          document.getElementById('hangupBtn').style.display = 'block';
+
+          // Attach remote audio
+          const remoteAudio = document.getElementById('remoteAudio');
+          const remoteStream = currentSession.sessionDescriptionHandler.peerConnection.getRemoteStreams()[0];
+          if (remoteStream) {
+            remoteAudio.srcObject = remoteStream;
+          }
+        });
+
+        currentSession.on('terminated', (message, cause) => {
+          console.log('[Phone] Call terminated:', cause);
+          const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+          updateCallStatus('Call ended', '');
+          document.getElementById('callBtn').style.display = 'block';
+          document.getElementById('hangupBtn').style.display = 'none';
+
+          // Save call history
+          saveCallHistory(phoneNumber, duration, 'completed');
+
+          currentSession = null;
+          callStartTime = null;
+        });
+
+        currentSession.on('failed', (response) => {
+          console.error('[Phone] Call failed:', response);
+          const reason = response.reason_phrase || 'Unknown error';
+          updateCallStatus('Call failed: ' + reason, 'error');
+          document.getElementById('callBtn').style.display = 'block';
+          document.getElementById('hangupBtn').style.display = 'none';
+
+          // Save call history
+          saveCallHistory(phoneNumber, 0, 'failed');
+
+          currentSession = null;
+          callStartTime = null;
+        });
+
+      } catch (error) {
+        console.error('[Phone] Error making call:', error);
+        updateCallStatus('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Hang up call
+    function hangupCall() {
+      if (currentSession) {
+        try {
+          console.log('[Phone] Hanging up...');
+          currentSession.terminate();
+        } catch (error) {
+          console.error('[Phone] Error hanging up:', error);
+        }
+      }
+    }
+
+    // Save call history to database
+    async function saveCallHistory(phoneNumber, duration, status) {
+      try {
+        const response = await fetch('/api/calls/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            phone_number: phoneNumber,
+            duration: duration,
+            status: status
+          })
+        });
+
+        if (response.ok) {
+          console.log('[Phone] Call history saved');
+          // Reload conversations to show call in history
+          await loadConversations();
+        } else {
+          console.error('[Phone] Failed to save call history');
+        }
+      } catch (error) {
+        console.error('[Phone] Error saving call history:', error);
+      }
+    }
+
+    // Initialize SIP on page load
+    initializeSIP();
+
+    // ============================================
+    // END PHONE DIALER
+    // ============================================
 
     init();
   </script>
