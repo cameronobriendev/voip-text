@@ -848,21 +848,21 @@
       position: fixed;
       right: 0;
       top: 200px;
-      width: 40px;
-      height: 40px;
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50% 0 0 50%;
-      box-shadow:
-        -4px 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      width: 42px;
+      height: 42px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px 0 0 8px;
+      box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.15);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 101;
-      transition: right 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
 
     .phone-toggle.open {
@@ -874,14 +874,31 @@
       height: 20px;
       fill: white;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-      transition: transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      position: relative;
+      z-index: 2;
+    }
+
+    .phone-toggle::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1;
     }
 
     .phone-toggle:hover {
-      background: rgba(255, 255, 255, 0.35);
-      box-shadow:
-        -6px 6px 20px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: -6px 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .phone-toggle:hover::before {
+      opacity: 1;
     }
 
     .phone-sidebar {
@@ -889,13 +906,11 @@
       right: -180px;
       top: 80px;
       width: 180px;
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 12px 0 0 12px;
-      box-shadow:
-        -6px 6px 24px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px 0 0 8px;
+      box-shadow: -6px 6px 24px rgba(0, 0, 0, 0.25);
       padding: 12px;
       max-height: calc(100vh - 120px);
       overflow-y: auto;
@@ -977,12 +992,12 @@
 
     .dial-btn {
       position: relative;
-      padding: 8px;
+      padding: 10px;
       font-size: 14px;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       color: white;
@@ -991,40 +1006,37 @@
       align-items: center;
       justify-content: center;
       aspect-ratio: 1;
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255,255,255,0.3),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       backdrop-filter: blur(10px);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
     }
 
     .dial-btn::before {
       content: '';
       position: absolute;
-      top: 15%;
-      left: 15%;
-      width: 70%;
-      height: 30%;
-      background: radial-gradient(ellipse at top, rgba(255,255,255,0.3), transparent);
-      border-radius: 50%;
-      opacity: 0.8;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
     .dial-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
       transform: translateY(-2px) scale(1.05);
-      box-shadow:
-        0 6px 16px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255,255,255,0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .dial-btn:hover::before {
+      opacity: 1;
     }
 
     .dial-btn:active {
-      transform: translateY(0) scale(0.95);
-      box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 4px rgba(0, 0, 0, 0.3);
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .call-controls {
@@ -1035,37 +1047,27 @@
 
     .call-btn {
       flex: 1;
-      padding: 8px;
-      background: linear-gradient(145deg, rgba(34, 197, 94, 0.8), rgba(22, 163, 74, 0.7));
+      padding: 12px 8px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      border: none;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255,255,255,0.3),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .call-btn:hover {
-      background: linear-gradient(145deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.8));
-      transform: translateY(-2px) scale(1.02);
-      box-shadow:
-        0 12px 32px rgba(34, 197, 94, 0.4),
-        inset 0 1px 0 rgba(255,255,255,0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
     }
 
     .call-btn:active {
       transform: translateY(0) scale(0.98);
-      box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
     }
 
     .call-btn:disabled {
@@ -1076,86 +1078,67 @@
 
     .hangup-btn {
       flex: 1;
-      padding: 8px;
-      background: linear-gradient(145deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.7));
+      padding: 12px 8px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      border: none;
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255,255,255,0.3),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .hangup-btn:hover {
-      background: linear-gradient(145deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.8));
-      transform: translateY(-2px) scale(1.02);
-      box-shadow:
-        0 12px 32px rgba(239, 68, 68, 0.4),
-        inset 0 1px 0 rgba(255,255,255,0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
     }
 
     .hangup-btn:active {
       transform: translateY(0) scale(0.98);
-      box-shadow:
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
     }
 
     .clear-btn {
       flex: 1;
-      padding: 8px;
+      padding: 12px 8px;
       background: rgba(255, 255, 255, 0.15);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
     }
 
     .clear-btn:hover {
       background: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-1px);
-      box-shadow:
-        0 6px 20px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     }
 
     .clear-btn:active {
-      transform: translateY(0);
-      box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .call-status {
-      padding: 6px;
+      padding: 8px;
       text-align: center;
-      border-radius: 6px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.15);
       color: white;
       font-weight: 600;
-      font-size: 10px;
-      min-height: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      min-height: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       backdrop-filter: blur(10px);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
