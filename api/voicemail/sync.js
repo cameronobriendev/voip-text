@@ -232,6 +232,13 @@ export default async function handler(req, res) {
           contact = contacts[0];
         }
 
+        // Parse voip.ms date (Mountain Time) and convert to UTC
+        // Date format: "Wednesday, November 05, 2025 at 07:35:17 PM"
+        const vmDate = new Date(date);
+        // voip.ms gives Mountain Time, but new Date() on UTC server treats it as UTC
+        // Subtract 7 hours to convert to actual UTC (MST = UTC-7)
+        const utcDate = new Date(vmDate.getTime() - (7 * 60 * 60 * 1000));
+
         // Store voicemail in database
         const messages = await sql`
           INSERT INTO messages (
@@ -259,7 +266,7 @@ export default async function handler(req, res) {
             ${fromPhone},
             ${voipmsDid},
             'sent',
-            ${new Date(date)}
+            ${utcDate}
           )
           RETURNING *
         `;
