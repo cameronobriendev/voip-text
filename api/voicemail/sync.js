@@ -232,31 +232,53 @@ export default async function handler(req, res) {
           contact = contacts[0];
         }
 
-        // Parse voip.ms date (Mountain Time) and convert to UTC
-        // Date format: "Wednesday, November 05, 2025 at 07:35:17 PM"
-        // Manual parsing to ensure correct AM/PM handling
-        const dateMatch = date.match(/(\w+), (\w+) (\d+), (\d+) at (\d+):(\d+):(\d+) (AM|PM)/);
-        if (!dateMatch) {
-          console.error(`[Voicemail Sync] Failed to parse date: ${date}`);
-          continue;
+        // Parse voip.ms date (Eastern Time) and convert to UTC
+        // Format can be either:
+        //   - New: "2025-11-06 06:52:10" (24-hour format, Eastern Time)
+        //   - Old: "Wednesday, November 05, 2025 at 07:35:17 PM" (12-hour format, Eastern Time)
+
+        let utcDate;
+
+        // Try new format first: "2025-11-06 06:52:10"
+        const newFormatMatch = date.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+        if (newFormatMatch) {
+          const [_, year, month, day, hour, min, sec] = newFormatMatch;
+          // Parse as Eastern Time
+          const etDate = new Date(Date.UTC(
+            parseInt(year),
+            parseInt(month) - 1, // Month is 0-indexed
+            parseInt(day),
+            parseInt(hour),
+            parseInt(min),
+            parseInt(sec)
+          ));
+          // Eastern Time is UTC-5 (EST) or UTC-4 (EDT)
+          // For simplicity, use EST (UTC-5) by adding 5 hours
+          utcDate = new Date(etDate.getTime() + (5 * 60 * 60 * 1000));
+        } else {
+          // Try old format: "Wednesday, November 05, 2025 at 07:35:17 PM"
+          const oldFormatMatch = date.match(/(\w+), (\w+) (\d+), (\d+) at (\d+):(\d+):(\d+) (AM|PM)/);
+          if (!oldFormatMatch) {
+            console.error(`[Voicemail Sync] Failed to parse date: ${date}`);
+            continue;
+          }
+
+          const [_, dayName, month, day, year, hourStr, min, sec, ampm] = oldFormatMatch;
+          let hour = parseInt(hourStr);
+
+          // Convert to 24-hour format
+          if (ampm === 'PM' && hour !== 12) hour += 12;
+          if (ampm === 'AM' && hour === 12) hour = 0;
+
+          // Build date in Eastern Time, then convert to UTC
+          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          const monthNum = monthNames.indexOf(month);
+
+          // Create date with the time values (treating them as if they were UTC)
+          const etDate = new Date(Date.UTC(parseInt(year), monthNum, parseInt(day), hour, parseInt(min), parseInt(sec)));
+          // Eastern Time is UTC-5 (EST), so to convert TO UTC we ADD 5 hours
+          utcDate = new Date(etDate.getTime() + (5 * 60 * 60 * 1000));
         }
-
-        const [_, dayName, month, day, year, hourStr, min, sec, ampm] = dateMatch;
-        let hour = parseInt(hourStr);
-
-        // Convert to 24-hour format
-        if (ampm === 'PM' && hour !== 12) hour += 12;
-        if (ampm === 'AM' && hour === 12) hour = 0;
-
-        // Build date in Mountain Time, then convert to UTC
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const monthNum = monthNames.indexOf(month);
-
-        // Create date with the time values (treating them as if they were UTC)
-        const vmDate = new Date(Date.UTC(parseInt(year), monthNum, parseInt(day), hour, parseInt(min), parseInt(sec)));
-        // Mountain Time is UTC-7, so to convert TO UTC we ADD 7 hours
-        // (7:35 PM MT = 19:35 MT = 02:35 UTC next day)
-        const utcDate = new Date(vmDate.getTime() + (7 * 60 * 60 * 1000));
 
         // Store voicemail in database
         const messages = await sql`
