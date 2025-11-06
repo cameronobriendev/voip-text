@@ -186,7 +186,7 @@ export default async function handler(req, res) {
           const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+              'Authorization': `Bearer ${process.env.OPENAI_API}`
             },
             body: formData
           });
