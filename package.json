@@ -26,6 +26,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@vercel/blob": "^2.0.0",
+    "form-data": "^4.0.1",
     "jose": "^6.1.0"
   }
 }
