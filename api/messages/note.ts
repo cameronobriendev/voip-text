@@ -5,7 +5,7 @@
 
 export const config = { runtime: 'edge' };
 
-import { sql } from '@vercel/postgres';
+import { getDB } from '../db/client.js';
 import { isAuthenticated } from '../auth/utils.js';
 
 export default async function handler(req: Request): Promise<Response> {
@@ -34,6 +34,8 @@ export default async function handler(req: Request): Promise<Response> {
         { status: 400, headers: { 'content-type': 'application/json' } }
       );
     }
+
+    const sql = getDB();
 
     // Insert note into database (direction='note', message_type='note')
     await sql`
