@@ -55,15 +55,10 @@ export default async function handler(
   }
 
   try {
-    // Log the ENTIRE webhook payload for debugging
-    console.log('=== FULL WEBHOOK PAYLOAD ===');
-    console.log(JSON.stringify(req.body, null, 2));
-    console.log('=== END PAYLOAD ===');
-
     // Resend sends webhook with data nested under 'data' property
     const { data } = req.body;
 
-    if (!data || !data.from || !data.subject) {
+    if (!data || !data.from || !data.subject || !data.email_id) {
       console.error('Invalid webhook payload:', req.body);
       return res.status(400).json({
         success: false,
@@ -71,7 +66,63 @@ export default async function handler(
       });
     }
 
-    const { from, subject, text, html, attachments } = data;
+    const { from, subject, email_id, attachments } = data;
+
+    console.log('Received voicemail webhook:', { from, subject, email_id, attachmentsCount: attachments?.length });
+
+    // Fetch full email content from Resend API
+    const resendApiKey = process.env.RESEND_API;
+    if (!resendApiKey) {
+      console.error('RESEND_API environment variable not set');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error',
+      });
+    }
+
+    console.log('Fetching email content from Resend API...');
+    const emailResponse = await fetch(`https://api.resend.com/emails/${email_id}`, {
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+      },
+    });
+
+    if (!emailResponse.ok) {
+      console.error('Failed to fetch email from Resend:', emailResponse.status, await emailResponse.text());
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch email content',
+      });
+    }
+
+    const emailData = await emailResponse.json();
+    console.log('Fetched email data:', { hasText: !!emailData.text, hasHtml: !!emailData.html });
+
+    const text = emailData.text || emailData.html || '';
+
+    // Also fetch attachment content if available
+    let mp3Content = null;
+    if (attachments && attachments.length > 0) {
+      const mp3Attachment = attachments.find((att: any) =>
+        att.content_type === 'audio/mpeg' || att.filename?.endsWith('.MP3') || att.filename?.endsWith('.mp3')
+      );
+
+      if (mp3Attachment && mp3Attachment.id) {
+        console.log('Fetching MP3 attachment:', mp3Attachment.id);
+        const attachmentResponse = await fetch(`https://api.resend.com/emails/${email_id}/attachments/${mp3Attachment.id}`, {
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+          },
+        });
+
+        if (attachmentResponse.ok) {
+          mp3Content = await attachmentResponse.arrayBuffer();
+          console.log('Fetched MP3 attachment:', mp3Content.byteLength, 'bytes');
+        } else {
+          console.error('Failed to fetch attachment:', attachmentResponse.status);
+        }
+      }
+    }
 
     // Only process emails from voip.ms voicemail system or cameron@birdmail.ca (for testing)
     const allowedSenders = ['noreply@voipinterface.net', 'cameron@birdmail.ca'];
@@ -86,20 +137,18 @@ export default async function handler(
     }
 
     // Parse voicemail data from email body
-    const emailText = text || html || '';
-
-    if (!emailText) {
-      console.error('Email body is empty. Available data:', Object.keys(data));
+    if (!text) {
+      console.error('Email body is empty after fetching from Resend API');
       return res.status(400).json({
         success: false,
-        error: 'Email body is empty - check Resend inbound settings',
+        error: 'Email body is empty',
       });
     }
 
-    const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(emailText);
+    const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(text);
 
     if (!phoneNumber || !transcription) {
-      console.error('Failed to parse voicemail email:', emailText.substring(0, 200));
+      console.error('Failed to parse voicemail email:', text.substring(0, 200));
       return res.status(400).json({
         success: false,
         error: 'Failed to parse voicemail data from email',
@@ -107,42 +156,23 @@ export default async function handler(
     }
 
     const fromPhone = formatPhoneE164(phoneNumber);
-    const voipmsDid = process.env.VOIPMS_DID || '';
+    const voipmsDid = process.env.VOIPMS_DID || '7804825026';
 
-    // Get MP3 attachment
-    if (!attachments || attachments.length === 0) {
-      console.error('No MP3 attachment found in voicemail email');
-      return res.status(400).json({
-        success: false,
-        error: 'No MP3 attachment found',
+    // Upload MP3 to Vercel Blob if we have the content
+    let blob = null;
+    if (mp3Content) {
+      const timestamp = new Date().getTime();
+      const filename = `voicemail-${fromPhone}-${timestamp}.mp3`;
+
+      blob = await put(filename, Buffer.from(mp3Content), {
+        access: 'public',
+        contentType: 'audio/mpeg',
       });
+
+      console.log('Uploaded voicemail MP3 to Blob:', blob.url);
+    } else {
+      console.warn('No MP3 content available to upload');
     }
-
-    const mp3Attachment = attachments.find((att: any) =>
-      att.contentType === 'audio/mpeg' || att.filename?.endsWith('.mp3')
-    );
-
-    if (!mp3Attachment) {
-      console.error('No MP3 attachment found (looking for audio/mpeg)');
-      return res.status(400).json({
-        success: false,
-        error: 'No MP3 attachment found',
-      });
-    }
-
-    // Decode base64 MP3 content
-    const mp3Buffer = Buffer.from(mp3Attachment.content, 'base64');
-
-    // Upload MP3 to Vercel Blob
-    const timestamp = new Date().getTime();
-    const filename = `voicemail-${fromPhone}-${timestamp}.mp3`;
-
-    const blob = await put(filename, mp3Buffer, {
-      access: 'public',
-      contentType: 'audio/mpeg',
-    });
-
-    console.log('Uploaded voicemail MP3 to Blob:', blob.url);
 
     const sql = getDB();
 
@@ -188,7 +218,7 @@ export default async function handler(
         'inbound',
         'voicemail',
         ${transcription},
-        ${blob.url},
+        ${blob?.url || null},
         ${durationSeconds},
         ${confidence},
         ${fromPhone},
