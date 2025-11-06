@@ -1216,10 +1216,11 @@
 
       container.innerHTML = messages.map(msg => {
         const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const label = msg.direction === 'outbound' ? 'Me • ' : '';
         return `
           <div class="message ${msg.direction}">
             <div class="message-bubble">${escapeHtml(msg.content)}</div>
-            <div class="message-timestamp">${time}</div>
+            <div class="message-timestamp">${label}${time}</div>
           </div>
         `;
       }).join('');
