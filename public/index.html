@@ -2200,16 +2200,28 @@
     }
 
     // Initialize SIP.js User Agent
-    function initializeSIP() {
+    function initializeSIP(retryCount = 0) {
+      const maxRetries = 5;
+
+      console.log(`[Phone] Attempting to initialize SIP... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      console.log('[Phone] SIP library status:', typeof SIP !== 'undefined' ? 'loaded' : 'NOT LOADED');
+
       try {
         // Check if SIP.js is loaded
         if (typeof SIP === 'undefined') {
-          console.error('SIP.js library not loaded');
-          updateCallStatus('SIP library not available', 'error');
-          return;
+          if (retryCount < maxRetries) {
+            console.warn(`[Phone] SIP.js not ready yet, retrying in ${(retryCount + 1) * 200}ms...`);
+            setTimeout(() => initializeSIP(retryCount + 1), (retryCount + 1) * 200);
+            return;
+          } else {
+            console.error('[Phone] SIP.js library failed to load after multiple attempts');
+            console.error('[Phone] Check if https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js is accessible');
+            updateCallStatus('SIP library not available', 'error');
+            return;
+          }
         }
 
-        console.log('[Phone] Initializing SIP...');
+        console.log('[Phone] SIP.js loaded successfully, initializing...');
 
         const configuration = {
           uri: 'sip:486180_baresip@vancouver3.voip.ms',
@@ -2228,45 +2240,81 @@
           }
         };
 
+        console.log('[Phone] Creating SIP User Agent with config:', {
+          uri: configuration.uri,
+          wsServers: configuration.transportOptions.wsServers
+        });
+
         userAgent = new SIP.UA(configuration);
 
         userAgent.on('registered', () => {
-          console.log('[Phone] SIP registered successfully');
+          console.log('[Phone] ✅ SIP registered successfully');
           updateCallStatus('Ready to call', '');
         });
 
         userAgent.on('registrationFailed', (cause) => {
-          console.error('[Phone] SIP registration failed:', cause);
+          console.error('[Phone] ❌ SIP registration failed:', cause);
+          console.error('[Phone] Possible causes: Network issue, wrong credentials, or server unreachable');
           updateCallStatus('Registration failed', 'error');
         });
 
         userAgent.on('unregistered', () => {
-          console.log('[Phone] SIP unregistered');
+          console.warn('[Phone] ⚠️ SIP unregistered');
           updateCallStatus('Not registered', 'error');
         });
 
+        userAgent.on('transportCreated', (transport) => {
+          console.log('[Phone] Transport created:', transport.server);
+        });
+
+        userAgent.on('transportConnecting', (transport) => {
+          console.log('[Phone] Connecting to:', transport.server);
+        });
+
+        userAgent.on('transportConnected', (transport) => {
+          console.log('[Phone] ✅ Transport connected to:', transport.server);
+        });
+
+        userAgent.on('transportDisconnected', (transport) => {
+          console.warn('[Phone] ⚠️ Transport disconnected');
+        });
+
+        console.log('[Phone] SIP User Agent created, waiting for registration...');
+
       } catch (error) {
-        console.error('[Phone] SIP initialization error:', error);
+        console.error('[Phone] ❌ SIP initialization error:', error);
+        console.error('[Phone] Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
         updateCallStatus('Initialization failed', 'error');
       }
     }
 
     // Show call confirmation modal
     function showCallConfirm() {
+      console.log('[Phone] Call button clicked');
+
       const phoneNumber = document.getElementById('phoneDisplay').value.trim();
       if (!phoneNumber) {
+        console.warn('[Phone] No phone number entered');
         updateCallStatus('Enter a number first', 'error');
         return;
       }
 
+      console.log('[Phone] Phone number to call:', phoneNumber);
+
       if (!userAgent) {
+        console.error('[Phone] ❌ User agent not initialized');
         updateCallStatus('SIP not ready', 'error');
         return;
       }
 
       // Find contact name if it exists
-      const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === phoneNumber);
+      const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === phoneNumber.replace(/\D/g, ''));
       const displayName = contact ? (contact.contact_name || contact.name) : phoneNumber;
+
+      console.log('[Phone] Showing call confirmation for:', displayName);
 
       document.getElementById('callConfirmText').textContent =
         `Are you sure you actually want to talk to ${displayName}?`;
@@ -2307,10 +2355,14 @@
       const phoneNumber = document.getElementById('phoneDisplay').value.trim();
       const formattedNumber = formatForDialing(phoneNumber);
 
+      console.log('[Phone] ===== INITIATING CALL =====');
+      console.log('[Phone] Display number:', phoneNumber);
+      console.log('[Phone] Formatted for dialing:', formattedNumber);
+
       try {
-        console.log(`[Phone] Calling ${formattedNumber} (original: ${phoneNumber})...`);
 
         const target = 'sip:' + formattedNumber + '@vancouver3.voip.ms';
+        console.log('[Phone] SIP target:', target);
 
         const options = {
           sessionDescriptionHandlerOptions: {
@@ -2321,17 +2373,18 @@
           }
         };
 
+        console.log('[Phone] Sending INVITE...');
         currentSession = userAgent.invite(target, options);
         callStartTime = Date.now();
 
         // Set up call event handlers
         currentSession.on('progress', () => {
-          console.log('[Phone] Call progress (ringing)');
+          console.log('[Phone] 📞 Call progress (ringing)');
           updateCallStatus('Ringing...', 'calling');
         });
 
         currentSession.on('accepted', () => {
-          console.log('[Phone] Call accepted');
+          console.log('[Phone] ✅ Call accepted - connected!');
           updateCallStatus('Connected', 'connected');
           document.getElementById('callBtn').style.display = 'none';
           document.getElementById('hangupBtn').style.display = 'block';
@@ -2345,13 +2398,14 @@
         });
 
         currentSession.on('terminated', (message, cause) => {
-          console.log('[Phone] Call terminated:', cause);
           const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+          console.log(`[Phone] 🔴 Call terminated - Duration: ${duration}s - Cause:`, cause);
           updateCallStatus('Call ended', '');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
 
           // Save call history with formatted number
+          console.log('[Phone] Saving call history...');
           saveCallHistory(formattedNumber, duration, 'completed');
 
           currentSession = null;
@@ -2359,8 +2413,10 @@
         });
 
         currentSession.on('failed', (response) => {
-          console.error('[Phone] Call failed:', response);
+          console.error('[Phone] ❌ Call failed - Response:', response);
           const reason = response.reason_phrase || 'Unknown error';
+          console.error('[Phone] Failure reason:', reason);
+          console.error('[Phone] Status code:', response.status_code);
           updateCallStatus('Call failed: ' + reason, 'error');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
@@ -2373,7 +2429,8 @@
         });
 
       } catch (error) {
-        console.error('[Phone] Error making call:', error);
+        console.error('[Phone] ❌ Exception during call:', error);
+        console.error('[Phone] Error stack:', error.stack);
         updateCallStatus('Error: ' + error.message, 'error');
       }
     }
@@ -2418,12 +2475,17 @@
     }
 
     // Initialize SIP on page load (wait for SIP.js library to load)
-    window.addEventListener('load', () => {
-      // Give the SIP.js library a moment to initialize
-      setTimeout(() => {
-        initializeSIP();
-      }, 100);
-    });
+    // DOMContentLoaded fires earlier than 'load' but after scripts
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('[Phone] DOM loaded, starting SIP initialization...');
+        setTimeout(() => initializeSIP(), 500);
+      });
+    } else {
+      // DOM already loaded
+      console.log('[Phone] DOM already loaded, starting SIP initialization...');
+      setTimeout(() => initializeSIP(), 500);
+    }
 
     // ============================================
     // END PHONE DIALER
