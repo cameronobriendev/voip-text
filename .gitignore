@@ -9,3 +9,4 @@ public/js/*.js
 public/js/*.js.map
 public/js/*.d.ts
 *.tsbuildinfo
+.env*.local

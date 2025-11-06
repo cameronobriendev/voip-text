@@ -164,44 +164,6 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Transcribe with OpenAI Whisper API (Node.js with form-data package)
-        console.log(`[Voicemail Sync] Transcribing voicemail with Whisper API...`);
-        let transcription = 'Listen to Voicemail 👇'; // fallback
-        const confidence = null;
-
-        try {
-          const FormData = (await import('form-data')).default;
-          const formData = new FormData();
-
-          // Append file as Buffer with options (matches Tracker pattern conceptually)
-          formData.append('file', audioBuffer, {
-            filename: 'voicemail.mp3',
-            contentType: 'audio/mpeg'
-          });
-          formData.append('model', 'whisper-1');
-          formData.append('response_format', 'text');
-
-          // Call OpenAI Whisper API
-          const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-              ...formData.getHeaders() // CRITICAL: includes Content-Type with boundary
-            },
-            body: formData
-          });
-
-          if (whisperResponse.ok) {
-            transcription = await whisperResponse.text();
-            console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
-          } else {
-            const error = await whisperResponse.text();
-            console.error(`[Voicemail Sync] Whisper API error: ${error}`);
-          }
-        } catch (error) {
-          console.error(`[Voicemail Sync] Transcription error:`, error.message);
-        }
-
         // Parse duration (format: "00:00:08" → seconds)
         const durationParts = duration.split(':').map(Number);
         const durationSeconds = durationParts.length === 3
@@ -280,7 +242,7 @@ export default async function handler(req, res) {
           utcDate = new Date(etDate.getTime() + (5 * 60 * 60 * 1000));
         }
 
-        // Store voicemail in database
+        // Store voicemail in database immediately with placeholder text
         const messages = await sql`
           INSERT INTO messages (
             contact_id,
@@ -299,10 +261,10 @@ export default async function handler(req, res) {
             ${contact.id},
             'inbound',
             'voicemail',
-            ${transcription},
+            'Transcribing voicemail...',
             ${blob.url},
             ${durationSeconds},
-            ${confidence},
+            ${null},
             ${message_num},
             ${fromPhone},
             ${voipmsDid},
@@ -313,6 +275,56 @@ export default async function handler(req, res) {
         `;
 
         const newMessage = messages[0];
+        console.log(`[Voicemail Sync] Stored voicemail ${message_num} with placeholder text`);
+
+        // Now transcribe with OpenAI Whisper API (runs after message is stored)
+        console.log(`[Voicemail Sync] Starting transcription for message ${message_num}...`);
+        let transcription = 'Listen to Voicemail 👇'; // fallback
+        let confidence = null;
+
+        try {
+          const FormData = (await import('form-data')).default;
+          const formData = new FormData();
+
+          // Append file as Buffer with options
+          formData.append('file', audioBuffer, {
+            filename: 'voicemail.mp3',
+            contentType: 'audio/mpeg'
+          });
+          formData.append('model', 'whisper-1');
+          formData.append('response_format', 'verbose_json'); // Get confidence score
+
+          // Call OpenAI Whisper API
+          const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+              ...formData.getHeaders() // CRITICAL: includes Content-Type with boundary
+            },
+            body: formData
+          });
+
+          if (whisperResponse.ok) {
+            const result = await whisperResponse.json();
+            transcription = result.text || 'Listen to Voicemail 👇';
+            // Whisper doesn't provide confidence in the same way, but we can use it from segments if needed
+            console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
+          } else {
+            const error = await whisperResponse.text();
+            console.error(`[Voicemail Sync] Whisper API error: ${error}`);
+          }
+        } catch (error) {
+          console.error(`[Voicemail Sync] Transcription error:`, error.message);
+        }
+
+        // Update message with actual transcription
+        await sql`
+          UPDATE messages
+          SET content = ${transcription},
+              voicemail_confidence = ${confidence}
+          WHERE id = ${newMessage.id}
+        `;
+        console.log(`[Voicemail Sync] Updated message ${message_num} with transcription`);
 
         // Also mark as seen in tracking table
         await sql`
