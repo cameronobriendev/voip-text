@@ -498,6 +498,28 @@
       text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
 
+    /* Note message styling */
+    .message.note {
+      justify-content: center;
+      opacity: 0.9;
+    }
+
+    .message.note .message-bubble {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde047 100%);
+      color: #78350f;
+      border: 2px dashed rgba(251, 191, 36, 0.5);
+      font-style: italic;
+      max-width: 80%;
+    }
+
+    .message.note .message-timestamp {
+      color: rgba(120, 53, 15, 0.7);
+    }
+
+    .message.note .message-bubble::before {
+      content: "📝 ";
+    }
+
     .message-input-area {
       padding: 20px 24px;
       border-top: 1px solid rgba(255, 255, 255, 0.25);
@@ -568,6 +590,38 @@
     }
 
     .send-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    .note-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+
+    .note-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(245, 158, 11, 0.6);
+    }
+
+    .note-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .note-btn svg {
       width: 24px;
       height: 24px;
       fill: white;
@@ -1486,6 +1540,11 @@
         </div>
         <div class="message-input-area">
           <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+          <button class="note-btn" id="noteBtn" title="Add private note">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+          </button>
           <button class="send-btn" id="sendBtn">
             <svg viewBox="0 0 24 24">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
@@ -1537,13 +1596,18 @@
       container.innerHTML = messages.map(msg => {
         const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         let label = '';
-        if (msg.direction === 'outbound') {
+
+        // Handle different message types
+        if (msg.direction === 'note') {
+          label = 'Private Note • ';
+        } else if (msg.direction === 'outbound') {
           label = 'Me • ';
         } else {
           // For inbound, show contact name or phone number
           const name = currentContact.name || currentContact.phone_number;
           label = `${name} • `;
         }
+
         const voicemailLink = msg.voicemail_blob_url
           ? `<div style="margin-top: 8px;"><a href="#" onclick="showVoicemailWarning('${escapeHtml(msg.voicemail_blob_url)}'); return false;" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
           : '';
@@ -1584,6 +1648,41 @@
         const message = input.value.trim();
         if (message) {
           showSendModal(message);
+        }
+      });
+
+      // Note button handler
+      const noteBtn = document.getElementById('noteBtn');
+      noteBtn.addEventListener('click', async () => {
+        const message = input.value.trim();
+        if (!message) return;
+
+        const noteBtn = document.getElementById('noteBtn');
+        noteBtn.disabled = true;
+
+        try {
+          const response = await fetch('/api/messages/note', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phoneNumber: currentConversation,
+              body: message
+            })
+          });
+
+          if (response.ok) {
+            input.value = '';
+            input.style.height = 'auto';
+            showToast('Note saved', 'info');
+            loadConversation(currentConversation); // Refresh to show note
+          } else {
+            showToast('Failed to save note', 'error');
+          }
+        } catch (error) {
+          console.error('Error saving note:', error);
+          showToast('Error saving note', 'error');
+        } finally {
+          noteBtn.disabled = false;
         }
       });
     }
