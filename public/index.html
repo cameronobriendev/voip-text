@@ -52,22 +52,12 @@
     }
 
     .user-avatar {
-      width: 42px;
-      height: 42px;
-      background: linear-gradient(135deg, #4A90E2 0%, #667eea 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      font-size: 17px;
-      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+      display: none;
     }
 
     .user-details {
       flex: 1;
-      margin-left: 12px;
+      margin-left: 0;
     }
 
     .user-name {
@@ -1216,7 +1206,14 @@
 
       container.innerHTML = messages.map(msg => {
         const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const label = msg.direction === 'outbound' ? 'Me • ' : '';
+        let label = '';
+        if (msg.direction === 'outbound') {
+          label = 'Me • ';
+        } else {
+          // For inbound, show contact name or phone number
+          const name = currentContact.name || currentContact.phone_number;
+          label = `${name} • `;
+        }
         return `
           <div class="message ${msg.direction}">
             <div class="message-bubble">${escapeHtml(msg.content)}</div>
