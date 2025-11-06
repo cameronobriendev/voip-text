@@ -68,6 +68,18 @@ export default async function handler(
 
     const { from, subject, text, html, attachments } = data;
 
+    // Only process emails from voip.ms voicemail system or cameron@birdmail.ca (for testing)
+    const allowedSenders = ['noreply@voipinterface.net', 'cameron@birdmail.ca'];
+    const isAllowedSender = allowedSenders.some(allowed => from.includes(allowed));
+
+    if (!isAllowedSender) {
+      console.log('Ignoring email from non-voicemail sender:', from);
+      return res.status(200).json({
+        success: true,
+        message: 'Email ignored (not from voicemail system)',
+      });
+    }
+
     // Parse voicemail data from email body
     const emailText = text || html || '';
     const { phoneNumber, durationSeconds, confidence, transcription } = parseVoicemailEmail(emailText);
