@@ -1638,6 +1638,27 @@
       }
     }
 
+    // Check for new voicemails
+    async function checkVoicemails() {
+      try {
+        const response = await fetch('/api/voicemail/sync');
+        const data = await response.json();
+
+        if (data.success && data.newVoicemails && data.newVoicemails.length > 0) {
+          // Show toast for each new voicemail
+          data.newVoicemails.forEach(vm => {
+            showToast(`New voicemail from ${vm.from}`, 'success');
+          });
+
+          // Reload conversations to show new voicemails
+          await loadConversations();
+        }
+      } catch (error) {
+        console.error('Failed to check voicemails:', error);
+        // Don't show error toast - this is a background operation
+      }
+    }
+
     // Initialize app
     async function init() {
       const authenticated = await checkAuth();
@@ -1648,6 +1669,9 @@
         contacts.forEach(conv => {
           lastSeenMessageIds.add(conv.message_id);
         });
+
+        // Check for new voicemails (non-blocking)
+        checkVoicemails();
 
         // Start polling for new messages
         startPolling();
