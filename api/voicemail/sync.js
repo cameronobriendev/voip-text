@@ -2,6 +2,8 @@ import { put } from '@vercel/blob';
 import { getDB } from '../db/client.js';
 import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../utils/phone.js';
 
+export const config = { runtime: 'edge' };
+
 /**
  * Voicemail sync endpoint
  *
@@ -164,21 +166,16 @@ export default async function handler(req, res) {
 
         console.log(`[Voicemail Sync] Uploaded to Blob: ${blob.url}`);
 
-        // Transcribe with OpenAI Whisper API (direct call, synchronous)
+        // Transcribe with OpenAI Whisper API (EXACT same pattern as Tracker)
         console.log(`[Voicemail Sync] Transcribing voicemail with Whisper API...`);
         let transcription = 'Listen to Voicemail 👇'; // fallback
         const confidence = null;
 
         try {
-          // Create FormData for Whisper API
-          const FormData = (await import('form-data')).default;
+          // Use native FormData/Blob (Edge runtime)
           const formData = new FormData();
-
-          // Append audio file
-          formData.append('file', audioBuffer, {
-            filename: 'voicemail.mp3',
-            contentType: 'audio/mpeg',
-          });
+          const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+          formData.append('file', blob, 'voicemail.mp3');
           formData.append('model', 'whisper-1');
           formData.append('response_format', 'text');
 
@@ -186,8 +183,7 @@ export default async function handler(req, res) {
           const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
-              ...formData.getHeaders(),
-              'Authorization': `Bearer ${process.env.OPENAI_API}`
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: formData
           });
@@ -198,11 +194,9 @@ export default async function handler(req, res) {
           } else {
             const error = await whisperResponse.text();
             console.error(`[Voicemail Sync] Whisper API error: ${error}`);
-            // Keep fallback transcription
           }
         } catch (error) {
           console.error(`[Voicemail Sync] Transcription error:`, error.message);
-          // Keep fallback transcription
         }
 
         // Parse duration (format: "00:00:08" → seconds)
