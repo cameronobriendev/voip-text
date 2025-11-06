@@ -10,7 +10,7 @@ import { isAuthenticated } from '../../auth/utils.js';
 import type { Message } from '../../../types';
 
 export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'DELETE') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       { status: 405, headers: { 'content-type': 'application/json' } }
@@ -41,7 +41,26 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const sql = getDB();
 
-    // Get all messages for this contact (both SMS and voicemail)
+    // Handle DELETE request
+    if (req.method === 'DELETE') {
+      // Delete all messages for this contact
+      await sql`
+        DELETE FROM messages
+        WHERE contact_id = ${contactId}
+      `;
+
+      console.log('Deleted conversation for contact:', contactId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Conversation deleted successfully',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
+    // Handle GET request - get all messages for this contact (both SMS and voicemail)
     const messages : Message[] = await sql`
       SELECT * FROM messages
       WHERE contact_id = ${contactId}
@@ -57,7 +76,7 @@ export default async function handler(req: Request): Promise<Response> {
     );
 
   } catch (error) {
-    console.error('Get conversation error:', error);
+    console.error('Conversation endpoint error:', error);
     return new Response(
       JSON.stringify({
         success: false,

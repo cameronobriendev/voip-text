@@ -413,6 +413,24 @@
       text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
 
+    .delete-conversation-btn {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: rgba(255, 255, 255, 0.95);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .delete-conversation-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: rgba(239, 68, 68, 0.6);
+    }
+
     .messages-container {
       flex: 1;
       overflow-y: auto;
@@ -885,6 +903,20 @@
     </div>
   </div>
 
+  <!-- Delete Conversation Confirmation Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Delete Conversation?</div>
+        <div class="modal-subtitle" id="deleteConfirmText">This will permanently delete all messages with this contact. This action cannot be undone.</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);" onclick="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentUser = null;
     let currentContact = null;
@@ -1120,6 +1152,11 @@
               <div class="chat-header-phone">${escapeHtml(currentContact.phone_number)}</div>
             </div>
           </div>
+          <button class="delete-conversation-btn" onclick="showDeleteModal()" title="Delete Conversation">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
+            </svg>
+          </button>
         </div>
         <div class="messages-container" id="messagesContainer">
           <div class="loading">
@@ -1271,6 +1308,55 @@
         input.focus();
         pendingMessage = '';
       }
+    };
+
+    // Delete conversation modal functions
+    let pendingDeleteContactId = null;
+
+    window.showDeleteModal = function() {
+      if (!currentContact) return;
+      pendingDeleteContactId = currentContact.id;
+      document.getElementById('deleteConfirmModal').classList.add('show');
+    };
+
+    window.closeDeleteModal = function() {
+      document.getElementById('deleteConfirmModal').classList.remove('show');
+      pendingDeleteContactId = null;
+    };
+
+    window.confirmDelete = async function() {
+      if (!pendingDeleteContactId) return;
+
+      const contactToDelete = pendingDeleteContactId;
+      closeDeleteModal();
+
+      try {
+        const response = await fetch(`/api/messages/conversation/${contactToDelete}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('Conversation deleted', 'success');
+          currentContact = null;
+          await loadConversations();
+
+          // Show empty state
+          document.getElementById('chatArea').innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-text">Select a conversation</div>
+            </div>
+          `;
+        } else {
+          showToast('Failed to delete conversation: ' + (data.error || 'Unknown error'), 'info');
+        }
+      } catch (error) {
+        console.error('Failed to delete conversation:', error);
+        showToast('Failed to delete conversation. Please try again.', 'info');
+      }
+
+      pendingDeleteContactId = null;
     };
 
     // New message button - show contacts modal
