@@ -234,11 +234,27 @@ export default async function handler(req, res) {
 
         // Parse voip.ms date (Mountain Time) and convert to UTC
         // Date format: "Wednesday, November 05, 2025 at 07:35:17 PM"
-        // Remove "at" and parse manually to ensure correct AM/PM handling
-        const cleanDate = date.replace(' at ', ' ');
-        const vmDate = new Date(cleanDate);
-        // voip.ms gives Mountain Time, but new Date() on UTC server treats it as UTC
-        // Subtract 7 hours to convert to actual UTC (MST = UTC-7)
+        // Manual parsing to ensure correct AM/PM handling
+        const dateMatch = date.match(/(\w+), (\w+) (\d+), (\d+) at (\d+):(\d+):(\d+) (AM|PM)/);
+        if (!dateMatch) {
+          console.error(`[Voicemail Sync] Failed to parse date: ${date}`);
+          continue;
+        }
+
+        const [_, dayName, month, day, year, hourStr, min, sec, ampm] = dateMatch;
+        let hour = parseInt(hourStr);
+
+        // Convert to 24-hour format
+        if (ampm === 'PM' && hour !== 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+
+        // Build date in Mountain Time, then convert to UTC
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthNum = monthNames.indexOf(month);
+
+        // Create date object (treated as local time on server which is UTC)
+        const vmDate = new Date(Date.UTC(parseInt(year), monthNum, parseInt(day), hour, parseInt(min), parseInt(sec)));
+        // Subtract 7 hours to convert Mountain Time to actual UTC (MST = UTC-7)
         const utcDate = new Date(vmDate.getTime() - (7 * 60 * 60 * 1000));
 
         // Store voicemail in database
