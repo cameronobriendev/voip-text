@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put } from '@vercel/blob';
 import { getDB } from '../../db/client.js';
-import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../../utils/phone';
-import type { Contact, Message, ResendEmailWebhook } from '../../../types';
+import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../../utils/phone.js';
+import type { Contact, Message, ResendEmailWebhook } from '../../../types/index.js';
 
 /**
  * Parse voicemail data from email text
