@@ -2090,6 +2090,23 @@
       }
     }
 
+    // Format phone number for display: (780) 226-5961
+    function formatPhoneDisplay(phoneNumber) {
+      // Strip all non-digit characters
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+      // Handle North American 10-digit numbers
+      if (digitsOnly.length === 10) {
+        return `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
+      }
+      // Handle 11-digit numbers starting with 1
+      else if (digitsOnly.length === 11 && digitsOnly[0] === '1') {
+        return `(${digitsOnly.slice(1, 4)}) ${digitsOnly.slice(4, 7)}-${digitsOnly.slice(7)}`;
+      }
+      // Return as-is for other formats
+      return phoneNumber;
+    }
+
     // Open dialer with pre-populated number
     window.openDialerWithNumber = function(phoneNumber) {
       const sidebar = document.getElementById('phoneSidebar');
@@ -2105,11 +2122,18 @@
         populateContactSelector();
       }
 
-      // Set the phone number
-      document.getElementById('phoneDisplay').value = digitsOnly;
+      // Set the phone number with formatting
+      document.getElementById('phoneDisplay').value = formatPhoneDisplay(digitsOnly);
 
-      // Reset contact selector to default
-      document.getElementById('phoneContactSelector').value = '';
+      // Auto-select the contact in the dropdown if they exist
+      const selector = document.getElementById('phoneContactSelector');
+      const matchingContact = contacts.find(c => c.phone_number.replace(/\D/g, '') === digitsOnly);
+
+      if (matchingContact) {
+        selector.value = digitsOnly;
+      } else {
+        selector.value = '';
+      }
     };
 
     // Populate contact selector dropdown
@@ -2124,9 +2148,10 @@
         const option = document.createElement('option');
         const name = contact.contact_name || contact.name || contact.phone_number;
         const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
+        const formattedPhone = formatPhoneDisplay(phone);
 
         option.value = phone;
-        option.textContent = `${name} (${contact.phone_number})`;
+        option.textContent = `${name} - ${formattedPhone}`;
         selector.appendChild(option);
       });
     }
@@ -2137,14 +2162,13 @@
       const phoneNumber = selector.value;
 
       if (phoneNumber) {
-        document.getElementById('phoneDisplay').value = phoneNumber;
+        document.getElementById('phoneDisplay').value = formatPhoneDisplay(phoneNumber);
       }
     };
 
     // Dial a digit
     function dialDigit(digit) {
       const display = document.getElementById('phoneDisplay');
-      display.value += digit;
 
       // Send DTMF if in active call
       if (currentSession && currentSession.isEstablished && currentSession.isEstablished()) {
@@ -2153,6 +2177,13 @@
         } catch (e) {
           console.error('DTMF error:', e);
         }
+        // During a call, just append without formatting
+        display.value += digit;
+      } else {
+        // Before calling, add digit and reformat
+        const currentDigits = display.value.replace(/\D/g, '');
+        const newDigits = currentDigits + digit;
+        display.value = formatPhoneDisplay(newDigits);
       }
     }
 
