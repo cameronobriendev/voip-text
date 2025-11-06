@@ -8,7 +8,9 @@ export const config = { runtime: 'edge' };
 import { createSession, verifyPassword } from './utils.js';
 import { getDB } from '../db/client.js';
 
-const COOKIE_DOMAIN = '.birdmail.ca';
+// Use subdomain-specific cookie to avoid collision with other brasshelm projects
+// This will be sms.birdmail.ca or the Vercel deployment URL
+const COOKIE_DOMAIN = ''; // Empty = current domain only (subdomain-specific)
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
@@ -78,7 +80,8 @@ export default async function handler(req: Request): Promise<Response> {
     });
 
     // Session never expires (10 years = 315360000 seconds)
-    const cookie = `session=${token}; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=${10 * 365 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
+    // Omit Domain attribute to make cookie subdomain-specific
+    const cookie = `session=${token}; Path=/; Max-Age=${10 * 365 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
       process.env.VERCEL_ENV === 'production' ? '; Secure' : ''
     }`;
 

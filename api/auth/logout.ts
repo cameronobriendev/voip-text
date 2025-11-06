@@ -5,7 +5,8 @@
 
 export const config = { runtime: 'edge' };
 
-const COOKIE_DOMAIN = '.birdmail.ca';
+// Use subdomain-specific cookie to avoid collision with other brasshelm projects
+const COOKIE_DOMAIN = ''; // Empty = current domain only (subdomain-specific)
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
@@ -15,7 +16,8 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
-  const cookie = `session=; Domain=${COOKIE_DOMAIN}; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${
+  // Omit Domain attribute to make cookie subdomain-specific
+  const cookie = `session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${
     process.env.VERCEL_ENV === 'production' ? '; Secure' : ''
   }`;
 
