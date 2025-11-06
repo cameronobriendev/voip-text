@@ -1017,7 +1017,11 @@
   </style>
 
   <!-- JsSIP for WebRTC calling -->
-  <script src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"
+    onload="console.log('[Phone] JsSIP loaded successfully, version:', JsSIP.version); if (typeof initializeSIP === 'function') initializeSIP();"
+    onerror="console.error('[Phone] Failed to load JsSIP from CDN');">
+  </script>
 </head>
 <body>
   <div class="app-container">
@@ -2462,18 +2466,8 @@
       }
     }
 
-    // Initialize SIP on page load (wait for SIP.js library to load)
-    // DOMContentLoaded fires earlier than 'load' but after scripts
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('[Phone] DOM loaded, starting SIP initialization...');
-        setTimeout(() => initializeSIP(), 500);
-      });
-    } else {
-      // DOM already loaded
-      console.log('[Phone] DOM already loaded, starting SIP initialization...');
-      setTimeout(() => initializeSIP(), 500);
-    }
+    // Note: initializeSIP() is called by the JsSIP script tag's onload handler
+    // This ensures JsSIP is fully loaded before we try to use it
 
     // ============================================
     // END PHONE DIALER
