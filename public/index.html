@@ -2263,31 +2263,47 @@
 
         userAgent = new JsSIP.UA(configuration);
 
+        // Connection lifecycle events
+        userAgent.on('connecting', (event) => {
+          console.log('[Phone] 🔄 Connecting to VoIP.ms:', wsUrl);
+          updateCallStatus('Connecting...', '');
+        });
+
+        userAgent.on('connected', (event) => {
+          console.log('[Phone] ✅ WebSocket connected to:', wsUrl);
+        });
+
+        userAgent.on('disconnected', (event) => {
+          console.warn('[Phone] ⚠️ WebSocket disconnected');
+          console.warn('[Phone] Disconnect event:', event);
+          updateCallStatus('Disconnected', 'error');
+        });
+
+        // Registration events
         userAgent.on('registered', (event) => {
           console.log('[Phone] ✅ SIP registered successfully');
           updateCallStatus('Ready to call', '');
         });
 
         userAgent.on('registrationFailed', (event) => {
-          console.error('[Phone] ❌ SIP registration failed:', event.cause);
-          console.error('[Phone] Possible causes: Network issue, wrong credentials, or server unreachable');
-          updateCallStatus('Registration failed', 'error');
+          console.error('[Phone] ❌ SIP registration failed');
+          console.error('[Phone] Cause:', event.cause);
+          console.error('[Phone] Response:', event.response ? {
+            status_code: event.response.status_code,
+            reason_phrase: event.response.reason_phrase,
+            headers: event.response.headers
+          } : 'No response');
+          updateCallStatus('Registration failed: ' + event.cause, 'error');
         });
 
         userAgent.on('unregistered', (event) => {
           console.warn('[Phone] ⚠️ SIP unregistered');
+          console.warn('[Phone] Event:', event);
           updateCallStatus('Not registered', 'error');
         });
 
-        userAgent.on('connected', (event) => {
-          console.log('[Phone] ✅ WebSocket connected');
-        });
-
-        userAgent.on('disconnected', (event) => {
-          console.warn('[Phone] ⚠️ WebSocket disconnected');
-        });
-
-        console.log('[Phone] JsSIP User Agent created, starting...');
+        console.log('[Phone] JsSIP User Agent created, starting registration...');
+        console.log('[Phone] Will attempt to connect to:', wsUrl);
         userAgent.start();
 
       } catch (error) {
