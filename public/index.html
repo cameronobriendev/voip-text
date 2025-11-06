@@ -1016,8 +1016,8 @@
     }
   </style>
 
-  <!-- SIP.js for WebRTC calling -->
-  <script src="https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js"></script>
+  <!-- JsSIP for WebRTC calling -->
+  <script src="https://unpkg.com/jssip@3.10.1/lib-es5/JsSIP.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -2171,11 +2171,12 @@
       const display = document.getElementById('phoneDisplay');
 
       // Send DTMF if in active call
-      if (currentSession && currentSession.isEstablished && currentSession.isEstablished()) {
+      if (currentSession && currentSession.isEstablished()) {
         try {
-          currentSession.dtmf(digit);
+          currentSession.sendDTMF(digit);
+          console.log('[Phone] Sent DTMF:', digit);
         } catch (e) {
-          console.error('DTMF error:', e);
+          console.error('[Phone] DTMF error:', e);
         }
         // During a call, just append without formatting
         display.value += digit;
@@ -2199,87 +2200,74 @@
       statusEl.className = 'call-status ' + statusClass;
     }
 
-    // Initialize SIP.js User Agent
+    // Initialize JsSIP User Agent
     function initializeSIP(retryCount = 0) {
       const maxRetries = 5;
 
       console.log(`[Phone] Attempting to initialize SIP... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-      console.log('[Phone] SIP library status:', typeof SIP !== 'undefined' ? 'loaded' : 'NOT LOADED');
+      console.log('[Phone] JsSIP library status:', typeof JsSIP !== 'undefined' ? 'loaded' : 'NOT LOADED');
 
       try {
-        // Check if SIP.js is loaded
-        if (typeof SIP === 'undefined') {
+        // Check if JsSIP is loaded
+        if (typeof JsSIP === 'undefined') {
           if (retryCount < maxRetries) {
-            console.warn(`[Phone] SIP.js not ready yet, retrying in ${(retryCount + 1) * 200}ms...`);
+            console.warn(`[Phone] JsSIP not ready yet, retrying in ${(retryCount + 1) * 200}ms...`);
             setTimeout(() => initializeSIP(retryCount + 1), (retryCount + 1) * 200);
             return;
           } else {
-            console.error('[Phone] SIP.js library failed to load after multiple attempts');
-            console.error('[Phone] Check if https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js is accessible');
+            console.error('[Phone] JsSIP library failed to load after multiple attempts');
+            console.error('[Phone] Check if https://unpkg.com/jssip@3.10.1/lib-es5/JsSIP.js is accessible');
             updateCallStatus('SIP library not available', 'error');
             return;
           }
         }
 
-        console.log('[Phone] SIP.js loaded successfully, initializing...');
+        console.log('[Phone] JsSIP loaded successfully, initializing...');
+
+        const socket = new JsSIP.WebSocketInterface('wss://vancouver3.voip.ms:5061');
 
         const configuration = {
+          sockets: [socket],
           uri: 'sip:486180_baresip@vancouver3.voip.ms',
-          transportOptions: {
-            wsServers: ['wss://vancouver3.voip.ms:5061'],
-            traceSip: true
-          },
-          authorizationUsername: '486180_baresip',
-          authorizationPassword: ')NRxJ4#?x9G*=r/',
-          displayName: 'BirdText',
-          sessionDescriptionHandlerFactoryOptions: {
-            constraints: {
-              audio: true,
-              video: false
-            }
-          }
+          authorization_user: '486180_baresip',
+          password: ')NRxJ4#?x9G*=r/',
+          display_name: 'BirdText',
+          session_timers: false
         };
 
-        console.log('[Phone] Creating SIP User Agent with config:', {
+        console.log('[Phone] Creating JsSIP User Agent with config:', {
           uri: configuration.uri,
-          wsServers: configuration.transportOptions.wsServers
+          socket: 'wss://vancouver3.voip.ms:5061'
         });
 
-        userAgent = new SIP.UA(configuration);
+        userAgent = new JsSIP.UA(configuration);
 
-        userAgent.on('registered', () => {
+        userAgent.on('registered', (event) => {
           console.log('[Phone] ✅ SIP registered successfully');
           updateCallStatus('Ready to call', '');
         });
 
-        userAgent.on('registrationFailed', (cause) => {
-          console.error('[Phone] ❌ SIP registration failed:', cause);
+        userAgent.on('registrationFailed', (event) => {
+          console.error('[Phone] ❌ SIP registration failed:', event.cause);
           console.error('[Phone] Possible causes: Network issue, wrong credentials, or server unreachable');
           updateCallStatus('Registration failed', 'error');
         });
 
-        userAgent.on('unregistered', () => {
+        userAgent.on('unregistered', (event) => {
           console.warn('[Phone] ⚠️ SIP unregistered');
           updateCallStatus('Not registered', 'error');
         });
 
-        userAgent.on('transportCreated', (transport) => {
-          console.log('[Phone] Transport created:', transport.server);
+        userAgent.on('connected', (event) => {
+          console.log('[Phone] ✅ WebSocket connected');
         });
 
-        userAgent.on('transportConnecting', (transport) => {
-          console.log('[Phone] Connecting to:', transport.server);
+        userAgent.on('disconnected', (event) => {
+          console.warn('[Phone] ⚠️ WebSocket disconnected');
         });
 
-        userAgent.on('transportConnected', (transport) => {
-          console.log('[Phone] ✅ Transport connected to:', transport.server);
-        });
-
-        userAgent.on('transportDisconnected', (transport) => {
-          console.warn('[Phone] ⚠️ Transport disconnected');
-        });
-
-        console.log('[Phone] SIP User Agent created, waiting for registration...');
+        console.log('[Phone] JsSIP User Agent created, starting...');
+        userAgent.start();
 
       } catch (error) {
         console.error('[Phone] ❌ SIP initialization error:', error);
@@ -2365,25 +2353,26 @@
         console.log('[Phone] SIP target:', target);
 
         const options = {
-          sessionDescriptionHandlerOptions: {
-            constraints: {
-              audio: true,
-              video: false
-            }
+          mediaConstraints: {
+            audio: true,
+            video: false
+          },
+          pcConfig: {
+            iceServers: []
           }
         };
 
-        console.log('[Phone] Sending INVITE...');
-        currentSession = userAgent.invite(target, options);
+        console.log('[Phone] Initiating call...');
+        currentSession = userAgent.call(target, options);
         callStartTime = Date.now();
 
         // Set up call event handlers
-        currentSession.on('progress', () => {
+        currentSession.on('progress', (event) => {
           console.log('[Phone] 📞 Call progress (ringing)');
           updateCallStatus('Ringing...', 'calling');
         });
 
-        currentSession.on('accepted', () => {
+        currentSession.on('accepted', (event) => {
           console.log('[Phone] ✅ Call accepted - connected!');
           updateCallStatus('Connected', 'connected');
           document.getElementById('callBtn').style.display = 'none';
@@ -2391,15 +2380,15 @@
 
           // Attach remote audio
           const remoteAudio = document.getElementById('remoteAudio');
-          const remoteStream = currentSession.sessionDescriptionHandler.peerConnection.getRemoteStreams()[0];
+          const remoteStream = event.stream || currentSession.connection.getRemoteStreams()[0];
           if (remoteStream) {
             remoteAudio.srcObject = remoteStream;
           }
         });
 
-        currentSession.on('terminated', (message, cause) => {
+        currentSession.on('ended', (event) => {
           const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
-          console.log(`[Phone] 🔴 Call terminated - Duration: ${duration}s - Cause:`, cause);
+          console.log(`[Phone] 🔴 Call ended - Duration: ${duration}s - Cause:`, event.cause);
           updateCallStatus('Call ended', '');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
@@ -2412,11 +2401,10 @@
           callStartTime = null;
         });
 
-        currentSession.on('failed', (response) => {
-          console.error('[Phone] ❌ Call failed - Response:', response);
-          const reason = response.reason_phrase || 'Unknown error';
+        currentSession.on('failed', (event) => {
+          console.error('[Phone] ❌ Call failed - Event:', event);
+          const reason = event.cause || 'Unknown error';
           console.error('[Phone] Failure reason:', reason);
-          console.error('[Phone] Status code:', response.status_code);
           updateCallStatus('Call failed: ' + reason, 'error');
           document.getElementById('callBtn').style.display = 'block';
           document.getElementById('hangupBtn').style.display = 'none';
