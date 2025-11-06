@@ -24,11 +24,12 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
+  // FreeSWITCH configuration (gateway to voip.ms)
   const sipConfig = {
-    server: process.env.VOIP_SUBACCOUNT_SERVER || 'vancouver3.voip.ms',
-    port: process.env.VOIP_SIP_PORT || '4443',
-    user: process.env.VOIP_SUBACCOUNT_USER,
-    password: process.env.VOIP_SUBACCOUNT_PASS,
+    server: process.env.FREESWITCH_SERVER || 'voip.birdmail.ca',
+    port: process.env.FREESWITCH_WSS_PORT || '8081',
+    user: process.env.FREESWITCH_USER || 'cameron',
+    password: process.env.FREESWITCH_PASSWORD,
     displayName: process.env.VOIPMS_DID || '7804825026'
   };
 
