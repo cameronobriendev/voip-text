@@ -7,6 +7,7 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../db/client.js';
 import { isAuthenticated } from '../auth/utils.js';
+import { getAnthropicModel, trackModelUsage } from '../../utils/anthropic-model';
 import type { AiDraftRequest, AiDraftResponse, AiDraftReply, Message, Contact } from '../../types';
 
 // Rate limiting: Track requests per user
@@ -193,6 +194,10 @@ Example format:
   {"id": "detailed", "label": "Detailed", "text": "Hey! That sounds absolutely perfect. I'm definitely in and really looking forward to it. Just let me know what time works best for you and I'll make sure I'm there!"}
 ]`;
 
+    // Get current model from centralized service
+    const modelId = await getAnthropicModel('sonnet', 'voip-text');
+    const startTime = Date.now();
+
     // Call Claude API
     const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -214,7 +219,7 @@ Example format:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: modelId,
         max_tokens: 1024,
         system: systemPrompt,
         messages: [
@@ -229,6 +234,19 @@ Example format:
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
       console.error('Claude API error:', claudeResponse.status, errorText);
+
+      // Track failed usage
+      await trackModelUsage({
+        projectName: 'voip-text',
+        endpoint: '/api/ai/draft-reply',
+        modelId,
+        inputTokens: 0,
+        outputTokens: 0,
+        responseTimeMs: Date.now() - startTime,
+        success: false,
+        error: `Claude API ${claudeResponse.status}: ${errorText.substring(0, 100)}`
+      });
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -258,6 +276,19 @@ Example format:
       }
     } catch (parseError) {
       console.error('Failed to parse Claude response:', parseError, 'Response:', responseText);
+
+      // Track failed usage
+      await trackModelUsage({
+        projectName: 'voip-text',
+        endpoint: '/api/ai/draft-reply',
+        modelId,
+        inputTokens: claudeData.usage?.input_tokens || 0,
+        outputTokens: claudeData.usage?.output_tokens || 0,
+        responseTimeMs: Date.now() - startTime,
+        success: false,
+        error: `Parse error: ${parseError instanceof Error ? parseError.message : 'Unknown'}`
+      });
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -266,6 +297,17 @@ Example format:
         { status: 500, headers: { 'content-type': 'application/json' } }
       );
     }
+
+    // Track successful usage
+    await trackModelUsage({
+      projectName: 'voip-text',
+      endpoint: '/api/ai/draft-reply',
+      modelId,
+      inputTokens: claudeData.usage.input_tokens,
+      outputTokens: claudeData.usage.output_tokens,
+      responseTimeMs: Date.now() - startTime,
+      success: true
+    });
 
     // Log usage for cost monitoring
     console.log('[AI Draft] Generated replies for user:', user.username, 'contact:', contact.name, 'tokens:', claudeData.usage);
