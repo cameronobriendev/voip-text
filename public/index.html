@@ -257,6 +257,64 @@
     </div>
   </div>
 
+  <!-- AI Draft Reply Modal -->
+  <div class="modal-overlay" id="aiDraftModal">
+    <div class="modal ai-draft-modal">
+      <div class="modal-header">
+        <div class="modal-title">Draft Reply to <span id="aiDraftContactName"></span></div>
+        <div class="modal-subtitle">AI will help you craft the perfect response</div>
+      </div>
+
+      <!-- Form Section -->
+      <div id="aiDraftForm" class="ai-draft-form">
+        <div class="form-group">
+          <label>How do you know <span id="aiDraftContactName2"></span>?</label>
+          <input type="text" id="aiRelationship" placeholder="e.g., close friend, work colleague, family member">
+        </div>
+
+        <div class="form-group">
+          <label>What tone should I use?</label>
+          <input type="text" id="aiTone" placeholder="e.g., warm and friendly, brief and professional, casual">
+        </div>
+
+        <div class="form-group">
+          <label>Any additional context? (optional)</label>
+          <textarea id="aiContext" rows="3" placeholder="e.g., They just got back from vacation, I owe them money, etc."></textarea>
+        </div>
+
+        <button class="modal-btn modal-btn-primary" id="aiGenerateBtn" onclick="generateAiReplies()">
+          <span id="aiGenerateBtnText">Write Reply</span>
+          <span id="aiGenerateSpinner" class="spinner" style="display: none;"></span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="aiDraftLoading" class="ai-draft-loading" style="display: none;">
+        <div class="spinner"></div>
+        <div style="margin-top: 12px; font-size: 14px; opacity: 0.8;">Generating replies...</div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="aiDraftResults" class="ai-draft-results" style="display: none;">
+        <div class="ai-draft-results-title">Choose a reply:</div>
+        <div id="aiDraftCards" class="ai-draft-cards"></div>
+
+        <!-- Refinement Section -->
+        <div class="ai-draft-refinement">
+          <div class="form-group" style="margin-bottom: 8px;">
+            <input type="text" id="aiRefineContext" placeholder="Add more context and regenerate...">
+          </div>
+          <button class="modal-btn modal-btn-secondary" onclick="regenerateAiReplies()">Regenerate</button>
+        </div>
+      </div>
+
+      <!-- Close Button -->
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeAiDraftModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Phone Dialer -->
   <button class="phone-toggle" id="phoneToggle" onclick="togglePhone()">
     <svg viewBox="0 0 24 24">

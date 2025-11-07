@@ -362,6 +362,11 @@
           ? `<div style="margin-top: 8px;"><a href="#" onclick="showVoicemailWarning('${escapeHtml(msg.voicemail_blob_url)}'); return false;" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
           : '';
 
+        // Add AI draft icon for inbound messages (next to timestamp)
+        const aiDraftIcon = msg.direction === 'inbound' && msg.message_type === 'sms'
+          ? `<svg onclick="showAiDraftModal('${msg.id}', '${currentContact.id}')" style="width: 14px; height: 14px; margin-left: 8px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+          : '';
+
         // Add subtle delete icon for private notes (next to timestamp)
         const deleteIcon = msg.direction === 'note'
           ? `<svg onclick="showDeleteNoteModal('${msg.id}')" style="width: 14px; height: 14px; margin-left: 8px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
@@ -373,7 +378,7 @@
               ${escapeHtml(msg.content)}
               ${voicemailLink}
             </div>
-            <div class="message-timestamp" style="display: flex; align-items: center;">${label}${time}${deleteIcon}</div>
+            <div class="message-timestamp" style="display: flex; align-items: center;">${label}${time}${aiDraftIcon}${deleteIcon}</div>
           </div>
         `;
       }).join('');
@@ -1872,6 +1877,268 @@
 
     // ============================================
     // END PHONE DIALER
+    // ============================================
+
+    // ============================================
+    // AI DRAFT REPLY FEATURE
+    // ============================================
+
+    let currentAiDraftMessageId = null;
+    let currentAiDraftContactId = null;
+    let aiDraftContext = '';
+
+    // Caching functions
+    function getCachedDrafts(messageId) {
+      const cached = localStorage.getItem(`ai-drafts-${messageId}`);
+      if (!cached) return null;
+
+      try {
+        const data = JSON.parse(cached);
+        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+        if (data.timestamp < oneHourAgo) {
+          localStorage.removeItem(`ai-drafts-${messageId}`);
+          return null;
+        }
+
+        return data;
+      } catch (error) {
+        console.error('[AI Draft] Failed to parse cached drafts:', error);
+        return null;
+      }
+    }
+
+    function cacheDrafts(messageId, data) {
+      try {
+        localStorage.setItem(`ai-drafts-${messageId}`, JSON.stringify({
+          ...data,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.error('[AI Draft] Failed to cache drafts:', error);
+      }
+    }
+
+    function clearDraftCache(contactId) {
+      // Clear all cached drafts for this contact
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('ai-drafts-')) {
+          const cached = localStorage.getItem(key);
+          if (cached) {
+            try {
+              const data = JSON.parse(cached);
+              if (data.contactId === contactId) {
+                localStorage.removeItem(key);
+              }
+            } catch (error) {
+              // Invalid cache entry, remove it
+              localStorage.removeItem(key);
+            }
+          }
+        }
+      });
+    }
+
+    // Show AI draft modal
+    window.showAiDraftModal = async function(messageId, contactId) {
+      if (!currentContact) {
+        showToast('Please select a contact first', 'error');
+        return;
+      }
+
+      currentAiDraftMessageId = messageId;
+      currentAiDraftContactId = contactId;
+      aiDraftContext = '';
+
+      // Set contact name in modal
+      document.getElementById('aiDraftContactName').textContent = currentContact.name;
+      document.getElementById('aiDraftContactName2').textContent = currentContact.name;
+
+      // Load cached AI preferences from contact
+      document.getElementById('aiRelationship').value = currentContact.ai_relationship || '';
+      document.getElementById('aiTone').value = currentContact.ai_tone_preference || '';
+      document.getElementById('aiContext').value = '';
+      document.getElementById('aiRefineContext').value = '';
+
+      // Reset modal state
+      document.getElementById('aiDraftForm').style.display = 'block';
+      document.getElementById('aiDraftLoading').style.display = 'none';
+      document.getElementById('aiDraftResults').style.display = 'none';
+      document.getElementById('aiGenerateBtnText').style.display = 'inline';
+      document.getElementById('aiGenerateSpinner').style.display = 'none';
+
+      // Check for cached drafts
+      const cached = getCachedDrafts(messageId);
+      if (cached) {
+        console.log('[AI Draft] Using cached drafts');
+        displayDraftResults(cached.replies, true);
+      }
+
+      // Show modal
+      document.getElementById('aiDraftModal').style.display = 'flex';
+    };
+
+    // Close AI draft modal
+    window.closeAiDraftModal = function() {
+      document.getElementById('aiDraftModal').style.display = 'none';
+      currentAiDraftMessageId = null;
+      currentAiDraftContactId = null;
+      aiDraftContext = '';
+    };
+
+    // Generate AI replies
+    window.generateAiReplies = async function() {
+      const relationship = document.getElementById('aiRelationship').value.trim();
+      const tone = document.getElementById('aiTone').value.trim();
+      const context = document.getElementById('aiContext').value.trim();
+
+      // Show loading state
+      document.getElementById('aiGenerateBtnText').style.display = 'none';
+      document.getElementById('aiGenerateSpinner').style.display = 'inline-block';
+      document.getElementById('aiDraftForm').style.display = 'none';
+      document.getElementById('aiDraftLoading').style.display = 'flex';
+      document.getElementById('aiDraftResults').style.display = 'none';
+
+      // Accumulate context
+      aiDraftContext += (aiDraftContext ? ' ' : '') + context;
+
+      try {
+        const response = await fetch('/api/ai/draft-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messageId: currentAiDraftMessageId,
+            contactId: currentAiDraftContactId,
+            relationship,
+            tone,
+            additionalContext: aiDraftContext
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to generate replies');
+        }
+
+        // Save AI preferences to contact
+        await saveAiPreferences(currentAiDraftContactId, relationship, tone);
+
+        // Cache the results
+        cacheDrafts(currentAiDraftMessageId, {
+          contactId: currentAiDraftContactId,
+          relationship,
+          tone,
+          additionalContext: aiDraftContext,
+          replies: data.replies
+        });
+
+        // Display results
+        displayDraftResults(data.replies, false);
+
+      } catch (error) {
+        console.error('[AI Draft] Error:', error);
+        showToast(error.message || 'Failed to generate replies', 'error');
+
+        // Reset to form
+        document.getElementById('aiDraftForm').style.display = 'block';
+        document.getElementById('aiDraftLoading').style.display = 'none';
+        document.getElementById('aiGenerateBtnText').style.display = 'inline';
+        document.getElementById('aiGenerateSpinner').style.display = 'none';
+      }
+    };
+
+    // Regenerate with more context
+    window.regenerateAiReplies = async function() {
+      const additionalContext = document.getElementById('aiRefineContext').value.trim();
+
+      if (!additionalContext) {
+        showToast('Please add more context to regenerate', 'info');
+        return;
+      }
+
+      // Add to accumulated context
+      aiDraftContext += ' ' + additionalContext;
+
+      // Set in main context field and regenerate
+      document.getElementById('aiContext').value = aiDraftContext;
+      document.getElementById('aiRefineContext').value = '';
+
+      await generateAiReplies();
+    };
+
+    // Display draft results
+    function displayDraftResults(replies, cached) {
+      document.getElementById('aiDraftLoading').style.display = 'none';
+      document.getElementById('aiDraftResults').style.display = 'block';
+
+      const cardsContainer = document.getElementById('aiDraftCards');
+      cardsContainer.innerHTML = replies.map(reply => {
+        const wordCount = reply.text.split(/\s+/).length;
+        return `
+          <div class="ai-draft-card" onclick="selectAiReply('${escapeHtml(reply.text)}')">
+            <div class="ai-draft-card-header">
+              <div class="ai-draft-card-label">${reply.label}</div>
+              <div class="ai-draft-card-count">${wordCount} words</div>
+            </div>
+            <div class="ai-draft-card-text">${escapeHtml(reply.text)}</div>
+          </div>
+        `;
+      }).join('');
+
+      if (cached) {
+        showToast('Using cached replies (click regenerate for fresh ones)', 'info');
+      }
+    }
+
+    // Select AI reply
+    window.selectAiReply = function(text) {
+      // Insert into message input
+      const messageInput = document.getElementById('messageInput');
+      messageInput.value = text;
+
+      // Auto-resize textarea
+      messageInput.style.height = 'auto';
+      messageInput.style.height = messageInput.scrollHeight + 'px';
+
+      // Close modal
+      closeAiDraftModal();
+
+      // Focus message input
+      messageInput.focus();
+
+      showToast('Reply inserted! Edit if needed, then send', 'success');
+    };
+
+    // Save AI preferences to contact
+    async function saveAiPreferences(contactId, relationship, tone) {
+      if (!relationship && !tone) return; // Nothing to save
+
+      try {
+        await fetch(`/api/contacts/${contactId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ai_relationship: relationship,
+            ai_tone_preference: tone
+          })
+        });
+
+        // Update currentContact object
+        if (currentContact && currentContact.id === contactId) {
+          currentContact.ai_relationship = relationship;
+          currentContact.ai_tone_preference = tone;
+        }
+
+        console.log('[AI Draft] Saved preferences for contact:', contactId);
+      } catch (error) {
+        console.error('[AI Draft] Failed to save preferences:', error);
+      }
+    }
+
+    // ============================================
+    // END AI DRAFT REPLY FEATURE
     // ============================================
 
     init();
