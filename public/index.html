@@ -1783,19 +1783,27 @@
       noteBtn.addEventListener('click', async () => {
         const message = input.value.trim();
         if (!message) return;
-        if (!currentContact) return;
+        if (!currentContact) {
+          console.error('No current contact selected');
+          return;
+        }
+
+        console.log('Saving note for contact:', currentContact);
 
         const noteBtn = document.getElementById('noteBtn');
         noteBtn.disabled = true;
 
         try {
+          const noteData = {
+            phoneNumber: currentContact.phone_number,
+            body: message
+          };
+          console.log('Sending note data:', noteData);
+
           const response = await fetch('/api/messages/note', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phoneNumber: currentContact.phone_number,
-              body: message
-            })
+            body: JSON.stringify(noteData)
           });
 
           if (response.ok) {

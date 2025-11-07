@@ -28,7 +28,10 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const { phoneNumber, body } = await req.json();
 
+    console.log('[Note API] Received:', { phoneNumber, body, userId: user.id });
+
     if (!phoneNumber || !body) {
+      console.error('[Note API] Missing required fields:', { phoneNumber, body });
       return new Response(
         JSON.stringify({ error: 'Phone number and body are required' }),
         { status: 400, headers: { 'content-type': 'application/json' } }
@@ -43,15 +46,18 @@ export default async function handler(req: Request): Promise<Response> {
       VALUES (${user.id}, ${phoneNumber}, 'note', 'note', ${body}, NOW())
     `;
 
+    console.log('[Note API] Note saved successfully');
+
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { 'content-type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error saving note:', error);
+    console.error('[Note API] Error saving note:', error);
+    console.error('[Note API] Error details:', error instanceof Error ? error.message : String(error));
     return new Response(
-      JSON.stringify({ error: 'Failed to save note' }),
+      JSON.stringify({ error: 'Failed to save note', details: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
