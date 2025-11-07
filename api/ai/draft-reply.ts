@@ -228,11 +228,11 @@ Example format:
 
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
-      console.error('Claude API error:', errorText);
+      console.error('Claude API error:', claudeResponse.status, errorText);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Failed to generate reply drafts',
+          error: `Claude API error: ${claudeResponse.status} - ${errorText.substring(0, 200)}`,
         } as AiDraftResponse),
         { status: 500, headers: { 'content-type': 'application/json' } }
       );
@@ -257,11 +257,11 @@ Example format:
         throw new Error('Invalid reply format');
       }
     } catch (parseError) {
-      console.error('Failed to parse Claude response:', responseText);
+      console.error('Failed to parse Claude response:', parseError, 'Response:', responseText);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Failed to parse AI response',
+          error: `Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
         } as AiDraftResponse),
         { status: 500, headers: { 'content-type': 'application/json' } }
       );
