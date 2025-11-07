@@ -356,11 +356,17 @@
           ? `<div style="margin-top: 8px;"><a href="#" onclick="showVoicemailWarning('${escapeHtml(msg.voicemail_blob_url)}'); return false;" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
           : '';
 
+        // Add delete button for private notes
+        const deleteButton = msg.direction === 'note'
+          ? `<button onclick="showDeleteNoteModal('${msg.id}')" style="margin-top: 8px; padding: 6px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: white; font-size: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.2)'">Delete Note</button>`
+          : '';
+
         return `
           <div class="message ${msg.direction}">
             <div class="message-bubble">
               ${escapeHtml(msg.content)}
               ${voicemailLink}
+              ${deleteButton}
             </div>
             <div class="message-timestamp">${label}${time}</div>
           </div>
@@ -432,6 +438,10 @@
         const noteBtn = document.getElementById('noteBtn');
         noteBtn.disabled = true;
 
+        // Clear input immediately to prevent double-click duplicates
+        input.value = '';
+        input.style.height = 'auto';
+
         try {
           const noteData = {
             phoneNumber: currentContact.phone_number,
@@ -446,8 +456,6 @@
           });
 
           if (response.ok) {
-            input.value = '';
-            input.style.height = 'auto';
             showToast('Note saved', 'info');
             await loadMessages(currentContact.id); // Refresh to show note
           } else {
@@ -1139,6 +1147,50 @@
 
       // Use the modal instead of confirm()
       showMarkSpamModal(currentContact.id, currentContact.name);
+    };
+
+    // Delete note functions
+    let pendingDeleteNoteId = null;
+
+    // Show delete note modal
+    window.showDeleteNoteModal = function(noteId) {
+      pendingDeleteNoteId = noteId;
+      document.getElementById('deleteNoteModal').classList.add('show');
+    };
+
+    // Close delete note modal
+    window.closeDeleteNoteModal = function() {
+      document.getElementById('deleteNoteModal').classList.remove('show');
+      pendingDeleteNoteId = null;
+    };
+
+    // Confirm delete note
+    window.confirmDeleteNote = async function() {
+      if (!pendingDeleteNoteId) return;
+
+      const noteId = pendingDeleteNoteId;
+      closeDeleteNoteModal();
+
+      try {
+        const response = await fetch(`/api/messages/${noteId}`, {
+          method: 'DELETE',
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast('Note deleted', 'success');
+          // Refresh messages to remove the deleted note
+          if (currentContact) {
+            await loadMessages(currentContact.id);
+          }
+        } else {
+          showToast('Failed to delete note: ' + (data.error || 'Unknown error'), 'info');
+        }
+      } catch (error) {
+        console.error('Failed to delete note:', error);
+        showToast('Failed to delete note. Please try again.', 'info');
+      }
     };
 
     // Search conversations

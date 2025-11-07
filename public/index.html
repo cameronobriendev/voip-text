@@ -243,6 +243,20 @@
     </div>
   </div>
 
+  <!-- Delete Note Confirmation Modal -->
+  <div class="modal-overlay" id="deleteNoteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Delete Note?</div>
+        <div class="modal-subtitle">This will permanently delete this private note. This action cannot be undone.</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeDeleteNoteModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);" onclick="confirmDeleteNote()">Delete Note</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Phone Dialer -->
   <button class="phone-toggle" id="phoneToggle" onclick="togglePhone()">
     <svg viewBox="0 0 24 24">
