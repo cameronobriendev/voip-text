@@ -222,7 +222,9 @@
                 contact_name: contact.name,
                 name: contact.name,
                 phone_number: contact.phone_number,
-                avatar_color: contact.avatar_color
+                avatar_color: contact.avatar_color,
+                ai_relationship: contact.ai_relationship,
+                ai_tone_preference: contact.ai_tone_preference
               };
             }
           }
@@ -238,7 +240,9 @@
         id: conv.contact_id,
         name: conv.contact_name || conv.name,
         phone_number: conv.phone_number,
-        avatar_color: conv.avatar_color
+        avatar_color: conv.avatar_color,
+        ai_relationship: conv.ai_relationship,
+        ai_tone_preference: conv.ai_tone_preference
       };
       renderConversations(contacts); // Update active state
       await loadMessages(contactId);

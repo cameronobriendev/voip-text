@@ -50,7 +50,9 @@ export default async function handler(req: Request): Promise<Response> {
         c.name as contact_name,
         c.phone_number,
         c.avatar_color,
-        c.is_spam
+        c.is_spam,
+        c.ai_relationship,
+        c.ai_tone_preference
       FROM messages m
       INNER JOIN contacts c ON m.contact_id = c.id
       WHERE ${showSpam ? sql`TRUE` : sql`(c.is_spam = FALSE OR c.is_spam IS NULL)`}
