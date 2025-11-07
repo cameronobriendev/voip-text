@@ -7,9 +7,10 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../../db/client.js';
 import { isAuthenticated } from '../../auth/utils.js';
+import { withCsrf } from '../../auth/csrf-middleware.js';
 import type { Contact } from '../../../types';
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   // Only allow PUT method
   if (req.method !== 'PUT') {
     return new Response(
@@ -100,3 +101,5 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
+export default withCsrf(handler);

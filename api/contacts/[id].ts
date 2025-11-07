@@ -7,10 +7,11 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../db/client.js';
 import { isAuthenticated } from '../auth/utils.js';
+import { withCsrf } from '../auth/csrf-middleware.js';
 import { formatPhoneE164 } from '../../utils/phone';
 import type { Contact } from '../../types';
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   // Verify authentication
   const user = await isAuthenticated(req);
   if (!user) {
@@ -160,3 +161,5 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
+export default withCsrf(handler);

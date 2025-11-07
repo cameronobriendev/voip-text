@@ -7,6 +7,7 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../db/client.js';
 import { isAuthenticated } from '../auth/utils.js';
+import { withCsrf } from '../auth/csrf-middleware.js';
 import { getAnthropicModel, trackModelUsage } from '../../utils/anthropic-model';
 import type { AiDraftRequest, AiDraftResponse, AiDraftReply, Message, Contact } from '../../types';
 
@@ -45,7 +46,7 @@ function getRateLimitRemaining(userId: string): { remaining: number; resetAt: nu
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -332,3 +333,5 @@ Example format:
     );
   }
 }
+
+export default withCsrf(handler);

@@ -5,10 +5,12 @@
 
 export const config = { runtime: 'edge' };
 
+import { withCsrf } from './csrf-middleware.js';
+
 // Use subdomain-specific cookie to avoid collision with other brasshelm projects
 const COOKIE_DOMAIN = ''; // Empty = current domain only (subdomain-specific)
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -32,3 +34,5 @@ export default async function handler(req: Request): Promise<Response> {
     }
   );
 }
+
+export default withCsrf(handler);

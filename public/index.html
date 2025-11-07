@@ -366,5 +366,11 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <!-- CSRF Token Manager -->
+  <script type="module">
+    import { fetchWithCsrf } from './scripts/csrf-manager.js';
+    window.fetchWithCsrf = fetchWithCsrf;
+  </script>
+
 </body>
 </html>

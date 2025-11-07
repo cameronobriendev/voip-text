@@ -131,7 +131,7 @@
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       try {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await fetchWithCsrf('/api/auth/logout', { method: 'POST' });
         window.location.href = '/login.html';
       } catch (error) {
         console.error('Logout failed:', error);
@@ -402,7 +402,7 @@
       // Mark each as read
       for (const msg of unreadInbound) {
         try {
-          await fetch(`/api/messages/${msg.id}/read`, {
+          await fetchWithCsrf(`/api/messages/${msg.id}/read`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' }
           });
@@ -463,7 +463,7 @@
           };
           console.log('Sending note data:', noteData);
 
-          const response = await fetch('/api/messages/note', {
+          const response = await fetchWithCsrf('/api/messages/note', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(noteData)
@@ -511,7 +511,7 @@
       input.disabled = true;
 
       try {
-        const response = await fetch('/api/messages/send', {
+        const response = await fetchWithCsrf('/api/messages/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -562,7 +562,7 @@
       closeDeleteModal();
 
       try {
-        const response = await fetch(`/api/messages/conversation/${contactToDelete}`, {
+        const response = await fetchWithCsrf(`/api/messages/conversation/${contactToDelete}`, {
           method: 'DELETE'
         });
 
@@ -703,7 +703,7 @@
       }
 
       try {
-        const response = await fetch('/api/contacts', {
+        const response = await fetchWithCsrf('/api/contacts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -931,7 +931,7 @@
       }
 
       try {
-        const response = await fetch(`/api/contacts/${contactId}`, {
+        const response = await fetchWithCsrf(`/api/contacts/${contactId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, phone_number: phone }),
@@ -982,7 +982,7 @@
       if (!contactToDelete) return;
 
       try {
-        const response = await fetch(`/api/contacts/${contactToDelete}`, {
+        const response = await fetchWithCsrf(`/api/contacts/${contactToDelete}`, {
           method: 'DELETE',
         });
 
@@ -1050,7 +1050,7 @@
       closeMarkSpamModal();
 
       try {
-        const response = await fetch(`/api/contacts/${contactId}/spam`, {
+        const response = await fetchWithCsrf(`/api/contacts/${contactId}/spam`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_spam: true }),
@@ -1134,7 +1134,7 @@
       closeUnmarkSpamModal();
 
       try {
-        const response = await fetch(`/api/contacts/${contactId}/spam`, {
+        const response = await fetchWithCsrf(`/api/contacts/${contactId}/spam`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_spam: false }),
@@ -1202,7 +1202,7 @@
       closeDeleteNoteModal();
 
       try {
-        const response = await fetch(`/api/messages/${noteId}`, {
+        const response = await fetchWithCsrf(`/api/messages/${noteId}`, {
           method: 'DELETE',
         });
 
@@ -1847,7 +1847,7 @@
     // Save call history to database
     async function saveCallHistory(phoneNumber, duration, status) {
       try {
-        const response = await fetch('/api/calls/save', {
+        const response = await fetchWithCsrf('/api/calls/save', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -2008,7 +2008,7 @@
       aiDraftContext += (aiDraftContext ? ' ' : '') + context;
 
       try {
-        const response = await fetch('/api/ai/draft-reply', {
+        const response = await fetchWithCsrf('/api/ai/draft-reply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2133,7 +2133,7 @@
       if (!relationship && !tone) return; // Nothing to save
 
       try {
-        await fetch(`/api/contacts/${contactId}`, {
+        await fetchWithCsrf(`/api/contacts/${contactId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

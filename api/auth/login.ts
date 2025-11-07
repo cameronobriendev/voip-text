@@ -6,6 +6,7 @@
 export const config = { runtime: 'edge' };
 
 import { createSession, verifyPassword } from './utils.js';
+import { checkLoginAttempt, recordFailedAttempt, clearLoginAttempts } from './brute-force-protection.js';
 import { getDB } from '../db/client.js';
 
 // Use subdomain-specific cookie to avoid collision with other brasshelm projects
@@ -34,6 +35,43 @@ export default async function handler(req: Request): Promise<Response> {
       );
     }
 
+    // Get IP address for brute force protection
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0] ||
+                      req.headers.get('cf-connecting-ip') ||
+                      'unknown';
+
+    // Check brute force limits (by username)
+    const usernameCheck = await checkLoginAttempt(username, 'username');
+    if (!usernameCheck.allowed) {
+      const message = usernameCheck.minutesRemaining
+        ? `Too many failed attempts. Try again in ${usernameCheck.minutesRemaining} minute${usernameCheck.minutesRemaining > 1 ? 's' : ''}.`
+        : 'Too many failed attempts. Please try again later.';
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: message
+        }),
+        { status: 429, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
+    // Check brute force limits (by IP)
+    const ipCheck = await checkLoginAttempt(ipAddress, 'ip');
+    if (!ipCheck.allowed) {
+      const message = ipCheck.minutesRemaining
+        ? `Too many failed attempts. Try again in ${ipCheck.minutesRemaining} minute${ipCheck.minutesRemaining > 1 ? 's' : ''}.`
+        : 'Too many failed attempts. Please try again later.';
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: message
+        }),
+        { status: 429, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
     const sql = getDB();
 
     interface DBUser {
@@ -50,6 +88,10 @@ export default async function handler(req: Request): Promise<Response> {
     `;
 
     if (users.length === 0) {
+      // Record failed attempt
+      await recordFailedAttempt(username, 'username');
+      await recordFailedAttempt(ipAddress, 'ip');
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -64,6 +106,10 @@ export default async function handler(req: Request): Promise<Response> {
     const validPassword = await verifyPassword(password, user.password_hash);
 
     if (!validPassword) {
+      // Record failed attempt
+      await recordFailedAttempt(username, 'username');
+      await recordFailedAttempt(ipAddress, 'ip');
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -72,6 +118,10 @@ export default async function handler(req: Request): Promise<Response> {
         { status: 401, headers: { 'content-type': 'application/json' } }
       );
     }
+
+    // Clear failed attempts on successful login
+    await clearLoginAttempts(username, 'username');
+    await clearLoginAttempts(ipAddress, 'ip');
 
     const token = await createSession({
       id: user.id,

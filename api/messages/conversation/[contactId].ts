@@ -7,9 +7,10 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../../db/client.js';
 import { isAuthenticated } from '../../auth/utils.js';
+import { withCsrf } from '../../auth/csrf-middleware.js';
 import type { Message } from '../../../types';
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   if (req.method !== 'GET' && req.method !== 'DELETE') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -87,3 +88,5 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
+export default withCsrf(handler);

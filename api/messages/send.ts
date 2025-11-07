@@ -7,10 +7,11 @@ export const config = { runtime: 'edge' };
 
 import { getDB } from '../db/client.js';
 import { isAuthenticated } from '../auth/utils.js';
+import { withCsrf } from '../auth/csrf-middleware.js';
 import { sendSMS } from '../../utils/voipms';
 import type { SendMessageRequest, SendMessageResponse, Contact, Message } from '../../types';
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -124,3 +125,5 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 }
+
+export default withCsrf(handler);
