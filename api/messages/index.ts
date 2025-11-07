@@ -36,6 +36,7 @@ export default async function handler(req: Request): Promise<Response> {
     // Get all conversations with latest message
     // Group by contact_id and get the most recent message for each
     // Filter out spam contacts unless explicitly requested
+    // Only include contacts that exist (c.id IS NOT NULL)
     const conversations = await sql`
       SELECT DISTINCT ON (m.contact_id)
         m.contact_id,
@@ -51,8 +52,8 @@ export default async function handler(req: Request): Promise<Response> {
         c.avatar_color,
         c.is_spam
       FROM messages m
-      LEFT JOIN contacts c ON m.contact_id = c.id
-      WHERE ${showSpam ? sql`TRUE` : sql`(c.is_spam IS NULL OR c.is_spam = FALSE)`}
+      INNER JOIN contacts c ON m.contact_id = c.id
+      WHERE ${showSpam ? sql`TRUE` : sql`(c.is_spam = FALSE OR c.is_spam IS NULL)`}
       ORDER BY m.contact_id, m.created_at DESC
     `;
 
