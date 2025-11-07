@@ -846,6 +846,8 @@
 
     window.openDeleteContactModal = function(contactId, contactName) {
       contactToDelete = contactId;
+      // Close the manage contacts modal first to avoid z-index issues
+      document.getElementById('manageContactsModal').classList.remove('show');
       document.getElementById('deleteContactConfirmText').textContent =
         `Are you sure you want to delete "${contactName}"? This will permanently delete this contact and cannot be undone.`;
       document.getElementById('deleteContactConfirmModal').classList.add('show');
@@ -854,6 +856,8 @@
     window.closeDeleteContactModal = function() {
       document.getElementById('deleteContactConfirmModal').classList.remove('show');
       contactToDelete = null;
+      // Reopen manage contacts modal when user cancels delete
+      showManageContactsModal();
     };
 
     window.confirmDeleteContact = async function() {
