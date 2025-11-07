@@ -2074,10 +2074,10 @@
       document.getElementById('aiDraftResults').style.display = 'block';
 
       const cardsContainer = document.getElementById('aiDraftCards');
-      cardsContainer.innerHTML = replies.map(reply => {
+      cardsContainer.innerHTML = replies.map((reply, index) => {
         const wordCount = reply.text.split(/\s+/).length;
         return `
-          <div class="ai-draft-card" onclick="selectAiReply('${escapeHtml(reply.text)}')">
+          <div class="ai-draft-card" data-reply-index="${index}">
             <div class="ai-draft-card-header">
               <div class="ai-draft-card-label">${reply.label}</div>
               <div class="ai-draft-card-count">${wordCount} words</div>
@@ -2086,6 +2086,13 @@
           </div>
         `;
       }).join('');
+
+      // Add click handlers
+      document.querySelectorAll('.ai-draft-card').forEach((card, index) => {
+        card.addEventListener('click', () => {
+          selectAiReply(replies[index].text);
+        });
+      });
 
       if (cached) {
         showToast('Using cached replies (click regenerate for fresh ones)', 'info');
