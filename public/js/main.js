@@ -1470,26 +1470,36 @@
     };
 
     // Populate contact selector dropdown
-    function populateContactSelector() {
+    async function populateContactSelector() {
       const selector = document.getElementById('phoneContactSelector');
 
       // Clear existing options (except the first one)
       selector.innerHTML = '<option value="">Select a contact...</option>';
 
-      // Add contacts from the conversations list (exclude spam contacts)
-      contacts.forEach(contact => {
-        // Skip spam contacts
-        if (contact.is_spam) return;
+      try {
+        // Fetch ALL contacts from database (not just those with conversations)
+        const response = await fetch('/api/contacts');
+        const data = await response.json();
 
-        const option = document.createElement('option');
-        const name = contact.contact_name || contact.name || contact.phone_number;
-        const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
-        const formattedPhone = formatPhoneDisplay(phone);
+        if (data.success && data.contacts) {
+          // Add all contacts excluding spam
+          data.contacts.forEach(contact => {
+            // Skip spam contacts
+            if (contact.is_spam) return;
 
-        option.value = phone;
-        option.textContent = name;
-        selector.appendChild(option);
-      });
+            const option = document.createElement('option');
+            const name = contact.name || contact.phone_number;
+            const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
+            const formattedPhone = formatPhoneDisplay(phone);
+
+            option.value = phone;
+            option.textContent = `${name} (${formattedPhone})`;
+            selector.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load contacts for dialer:', error);
+      }
     }
 
     // Handle contact selection from dropdown
