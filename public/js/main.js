@@ -292,6 +292,9 @@
 
         if (data.success && data.messages) {
           renderMessages(data.messages);
+
+          // Mark all unread inbound messages as read
+          markMessagesAsRead(data.messages);
         } else {
           document.getElementById('messagesContainer').innerHTML = `
             <div class="empty-state">
@@ -355,6 +358,28 @@
       }).join('');
 
       container.scrollTop = container.scrollHeight;
+    }
+
+    // Mark unread inbound messages as read
+    async function markMessagesAsRead(messages) {
+      // Find all unread inbound messages
+      const unreadInbound = messages.filter(msg =>
+        msg.direction === 'inbound' &&
+        !msg.read_at &&
+        msg.message_type !== 'note'
+      );
+
+      // Mark each as read
+      for (const msg of unreadInbound) {
+        try {
+          await fetch(`/api/messages/${msg.id}/read`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          console.error(`Failed to mark message ${msg.id} as read:`, error);
+        }
+      }
     }
 
     // Setup message input handlers
