@@ -40,10 +40,30 @@ export default async function handler(req: Request): Promise<Response> {
 
     const sql = getDB();
 
+    // Get contact_id from phone number
+    const contacts = await sql`
+      SELECT id FROM contacts
+      WHERE phone_number = ${phoneNumber}
+      LIMIT 1
+    `;
+
+    if (!contacts || contacts.length === 0) {
+      console.error('[Note API] Contact not found for phone:', phoneNumber);
+      return new Response(
+        JSON.stringify({ error: 'Contact not found' }),
+        { status: 404, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
+    const contactId = contacts[0].id;
+
+    // Get user's DID
+    const userDID = process.env.VOIPMS_DID || '7804825026';
+
     // Insert note into database (direction='note', message_type='note')
     await sql`
-      INSERT INTO messages (user_id, phone_number, direction, message_type, body, created_at)
-      VALUES (${user.id}, ${phoneNumber}, 'note', 'note', ${body}, NOW())
+      INSERT INTO messages (contact_id, phone_from, phone_to, direction, message_type, content, created_at)
+      VALUES (${contactId}, ${userDID}, ${phoneNumber}, 'note', 'note', ${body}, NOW())
     `;
 
     console.log('[Note API] Note saved successfully');
