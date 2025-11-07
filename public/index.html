@@ -1783,6 +1783,7 @@
       noteBtn.addEventListener('click', async () => {
         const message = input.value.trim();
         if (!message) return;
+        if (!currentContact) return;
 
         const noteBtn = document.getElementById('noteBtn');
         noteBtn.disabled = true;
@@ -1792,7 +1793,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              phoneNumber: currentConversation,
+              phoneNumber: currentContact.phone_number,
               body: message
             })
           });
@@ -1801,7 +1802,7 @@
             input.value = '';
             input.style.height = 'auto';
             showToast('Note saved', 'info');
-            loadConversation(currentConversation); // Refresh to show note
+            await loadMessages(currentContact.id); // Refresh to show note
           } else {
             showToast('Failed to save note', 'error');
           }
