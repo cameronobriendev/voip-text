@@ -215,6 +215,34 @@
     </div>
   </div>
 
+  <!-- Mark as Spam Confirmation Modal -->
+  <div class="modal-overlay" id="markSpamModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Mark as Spam?</div>
+        <div class="modal-subtitle" id="markSpamText">You will never see their messages, calls, or voicemails again.</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeMarkSpamModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);" onclick="confirmMarkSpam()">Mark as Spam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unmark Spam Confirmation Modal -->
+  <div class="modal-overlay" id="unmarkSpamModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Unmark as Spam?</div>
+        <div class="modal-subtitle" id="unmarkSpamText">This contact will be visible again and you'll receive their messages.</div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" onclick="closeUnmarkSpamModal()">Cancel</button>
+        <button class="modal-btn modal-btn-primary" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);" onclick="confirmUnmarkSpam()">Unmark Spam</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Phone Dialer -->
   <button class="phone-toggle" id="phoneToggle" onclick="togglePhone()">
     <svg viewBox="0 0 24 24">

@@ -702,12 +702,15 @@ body {
 }
 
 .modal-btn-secondary {
-  background: rgba(0,0,0,0.05);
-  color: #4a5568;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .modal-btn-secondary:hover {
-  background: rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .contact-list {

@@ -611,7 +611,9 @@
         const data = await response.json();
 
         if (data.success && data.contacts) {
-          renderContactList(data.contacts);
+          // Filter out spam contacts
+          const nonSpamContacts = data.contacts.filter(c => !c.is_spam || c.is_spam === false);
+          renderContactList(nonSpamContacts);
         } else {
           contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">No contacts found</div></div>';
         }
@@ -785,7 +787,7 @@
 
       // Different rendering for spam tab vs contacts tab
       if (currentContactsTab === 'spam') {
-        // Spam tab: Only show unmark button
+        // Spam tab: Only show undo button (yellow)
         contactList.innerHTML = contactsList.map(contact => `
           <div class="contact-list-item">
             <div class="contact-list-item-avatar" style="background: ${contact.avatar_color}">
@@ -796,9 +798,10 @@
               <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', true)" title="Unmark as spam" style="padding: 8px; border: none; background: rgba(16, 185, 129, 0.2); color: #10b981; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <button class="icon-btn" onclick="showUnmarkSpamModal('${contact.id}', '${escapeHtml(contact.name)}')" title="Unmark as spam" style="padding: 8px; border: none; background: rgba(245, 158, 11, 0.2); color: #f59e0b; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 7v6h6"></path>
+                  <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
                 </svg>
               </button>
             </div>
@@ -816,7 +819,7 @@
               <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', false)" title="Mark as spam" style="padding: 8px; border: none; background: rgba(255, 152, 0, 0.2); color: #ff9800; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+              <button class="icon-btn" onclick="showMarkSpamModal('${contact.id}', '${escapeHtml(contact.name)}')" title="Mark as spam" style="padding: 8px; border: none; background: rgba(255, 152, 0, 0.2); color: #ff9800; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
@@ -980,19 +983,123 @@
     });
 
     // Spam marking functions
-    window.toggleSpam = async function(contactId, contactName, isCurrentlySpam) {
-      const action = isCurrentlySpam ? 'unmark' : 'mark';
-      const confirmMessage = isCurrentlySpam
-        ? `Unmark "${contactName}" as spam? They will be visible again and you'll receive their messages.`
-        : `Mark "${contactName}" as spam? You will never see their messages, calls, or voicemails again.`;
+    let pendingSpamContactId = null;
+    let pendingSpamContactName = null;
 
-      if (!confirm(confirmMessage)) return;
+    // Show mark spam modal
+    window.showMarkSpamModal = function(contactId, contactName) {
+      pendingSpamContactId = contactId;
+      pendingSpamContactName = contactName;
+      document.getElementById('markSpamText').textContent =
+        `Mark "${contactName}" as spam? You will never see their messages, calls, or voicemails again.`;
+      document.getElementById('markSpamModal').classList.add('show');
+    };
+
+    // Close mark spam modal
+    window.closeMarkSpamModal = function() {
+      document.getElementById('markSpamModal').classList.remove('show');
+      pendingSpamContactId = null;
+      pendingSpamContactName = null;
+    };
+
+    // Confirm mark as spam
+    window.confirmMarkSpam = async function() {
+      if (!pendingSpamContactId) return;
+
+      const contactId = pendingSpamContactId;
+      const contactName = pendingSpamContactName;
+      const wasCurrentContact = currentContact && currentContact.id === contactId;
+      closeMarkSpamModal();
 
       try {
         const response = await fetch(`/api/contacts/${contactId}/spam`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_spam: !isCurrentlySpam }),
+          body: JSON.stringify({ is_spam: true }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Reload all contacts
+          const contactsResponse = await fetch('/api/contacts');
+          const contactsData = await contactsResponse.json();
+
+          if (contactsData.success && contactsData.contacts) {
+            contacts = contactsData.contacts;
+
+            // Re-render based on current tab (only if contacts modal is open)
+            const filteredContacts = contacts.filter(c => {
+              if (currentContactsTab === 'spam') {
+                return c.is_spam === true;
+              } else {
+                return !c.is_spam || c.is_spam === false;
+              }
+            });
+
+            // Only re-render if the manage contacts modal is open
+            const modal = document.getElementById('manageContactsModal');
+            if (modal.classList.contains('show')) {
+              renderManageContactList(filteredContacts);
+            }
+          }
+
+          await loadConversations(); // Refresh conversations
+
+          // If this was the currently open chat, clear it
+          if (wasCurrentContact) {
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML = `
+              <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <div class="empty-state-text">Select a conversation</div>
+                <div class="empty-state-subtext">Choose a contact to start messaging</div>
+              </div>
+            `;
+            currentContact = null;
+          }
+
+          showToast('Contact marked as spam and blocked', 'success');
+        } else {
+          showToast('Failed to mark as spam: ' + (data.error || 'Unknown error'), 'info');
+        }
+      } catch (error) {
+        console.error('Failed to mark as spam:', error);
+        showToast('Failed to mark as spam. Please try again.', 'info');
+      }
+    };
+
+    // Show unmark spam modal
+    window.showUnmarkSpamModal = function(contactId, contactName) {
+      pendingSpamContactId = contactId;
+      pendingSpamContactName = contactName;
+      document.getElementById('unmarkSpamText').textContent =
+        `Unmark "${contactName}" as spam? This contact will be visible again and you'll receive their messages.`;
+      document.getElementById('unmarkSpamModal').classList.add('show');
+    };
+
+    // Close unmark spam modal
+    window.closeUnmarkSpamModal = function() {
+      document.getElementById('unmarkSpamModal').classList.remove('show');
+      pendingSpamContactId = null;
+      pendingSpamContactName = null;
+    };
+
+    // Confirm unmark spam
+    window.confirmUnmarkSpam = async function() {
+      if (!pendingSpamContactId) return;
+
+      const contactId = pendingSpamContactId;
+      const contactName = pendingSpamContactName;
+      closeUnmarkSpamModal();
+
+      try {
+        const response = await fetch(`/api/contacts/${contactId}/spam`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_spam: false }),
         });
 
         const data = await response.json();
@@ -1017,58 +1124,21 @@
           }
 
           await loadConversations(); // Refresh conversations
-          showToast(
-            isCurrentlySpam ? 'Contact unmarked as spam' : 'Contact marked as spam and blocked',
-            'success'
-          );
+          showToast('Contact unmarked as spam', 'success');
         } else {
-          showToast('Failed to update spam status: ' + (data.error || 'Unknown error'), 'info');
+          showToast('Failed to unmark spam: ' + (data.error || 'Unknown error'), 'info');
         }
       } catch (error) {
-        console.error('Failed to toggle spam:', error);
-        showToast('Failed to update spam status. Please try again.', 'info');
+        console.error('Failed to unmark spam:', error);
+        showToast('Failed to unmark spam. Please try again.', 'info');
       }
     };
 
     window.toggleSpamFromChat = async function() {
       if (!currentContact) return;
 
-      const confirmMessage = `Mark "${currentContact.name}" as spam? You will never see their messages, calls, or voicemails again.`;
-
-      if (!confirm(confirmMessage)) return;
-
-      try {
-        const response = await fetch(`/api/contacts/${currentContact.id}/spam`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_spam: true }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          await loadConversations(); // Refresh conversations
-          showToast('Contact marked as spam and blocked', 'success');
-
-          // Clear the chat area
-          const chatArea = document.getElementById('chatArea');
-          chatArea.innerHTML = `
-            <div class="empty-state">
-              <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <div class="empty-state-text">Select a conversation</div>
-              <div class="empty-state-subtext">Choose a contact to start messaging</div>
-            </div>
-          `;
-          currentContact = null;
-        } else {
-          showToast('Failed to mark as spam: ' + (data.error || 'Unknown error'), 'info');
-        }
-      } catch (error) {
-        console.error('Failed to mark as spam:', error);
-        showToast('Failed to mark as spam. Please try again.', 'info');
-      }
+      // Use the modal instead of confirm()
+      showMarkSpamModal(currentContact.id, currentContact.name);
     };
 
     // Search conversations
@@ -1324,8 +1394,11 @@
       // Clear existing options (except the first one)
       selector.innerHTML = '<option value="">Select a contact...</option>';
 
-      // Add contacts from the conversations list
+      // Add contacts from the conversations list (exclude spam contacts)
       contacts.forEach(contact => {
+        // Skip spam contacts
+        if (contact.is_spam) return;
+
         const option = document.createElement('option');
         const name = contact.contact_name || contact.name || contact.phone_number;
         const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
@@ -1520,7 +1593,8 @@
       // Find contact name if it exists
       const cleanedNumber = phoneNumber.replace(/\D/g, '');
       const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === cleanedNumber);
-      const displayName = contact ? (contact.contact_name || contact.name || contact.phone_number) : formatPhoneDisplay(cleanedNumber);
+      // Use contact name if found, otherwise use phone number
+      const displayName = contact ? (contact.contact_name || contact.name) : phoneNumber;
 
       console.log('[Phone] Showing call confirmation for:', displayName, '(contact found:', !!contact, ')');
 
