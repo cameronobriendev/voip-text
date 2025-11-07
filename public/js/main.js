@@ -356,9 +356,9 @@
           ? `<div style="margin-top: 8px;"><a href="#" onclick="showVoicemailWarning('${escapeHtml(msg.voicemail_blob_url)}'); return false;" style="color: #667eea; text-decoration: none; font-size: 13px;">🎧 Listen to voicemail →</a></div>`
           : '';
 
-        // Add delete button for private notes
-        const deleteButton = msg.direction === 'note'
-          ? `<button onclick="showDeleteNoteModal('${msg.id}')" style="margin-top: 8px; padding: 6px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; color: white; font-size: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.2)'">Delete Note</button>`
+        // Add subtle delete icon for private notes (next to timestamp)
+        const deleteIcon = msg.direction === 'note'
+          ? `<svg onclick="showDeleteNoteModal('${msg.id}')" style="width: 14px; height: 14px; margin-left: 8px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`
           : '';
 
         return `
@@ -366,9 +366,8 @@
             <div class="message-bubble">
               ${escapeHtml(msg.content)}
               ${voicemailLink}
-              ${deleteButton}
             </div>
-            <div class="message-timestamp">${label}${time}</div>
+            <div class="message-timestamp" style="display: flex; align-items: center;">${label}${time}${deleteIcon}</div>
           </div>
         `;
       }).join('');
