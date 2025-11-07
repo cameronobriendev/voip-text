@@ -29,12 +29,6 @@
             <button class="new-message-btn" id="contactsBtn">Contacts</button>
             <button class="new-message-btn" id="newMessageBtn">New</button>
           </div>
-          <div style="display: flex; align-items: center; justify-content: center; margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.15); border-radius: 8px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: white; font-size: 13px; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
-              <input type="checkbox" id="showSpamCheckbox" style="cursor: pointer; width: 16px; height: 16px;">
-              Show Spam
-            </label>
-          </div>
         </div>
       </div>
 
@@ -152,11 +146,15 @@
         <div class="modal-title">Contacts</div>
         <div class="modal-subtitle">Manage your contacts</div>
       </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="contactsTab" onclick="switchContactsTab('contacts')">Contacts</button>
+        <button class="modal-tab" id="spamTab" onclick="switchContactsTab('spam')">Spam</button>
+      </div>
       <input type="text" class="search-bar" placeholder="Search contacts..." id="manageContactSearch" style="margin-bottom: 16px;">
       <div class="contact-list" id="manageContactList" style="max-height: 400px; overflow-y: auto;"></div>
       <div class="modal-buttons">
         <button class="modal-btn modal-btn-secondary" onclick="closeManageContactsModal()">Close</button>
-        <button class="modal-btn modal-btn-primary" onclick="openCreateContactFromManage()">Add Contact</button>
+        <button class="modal-btn modal-btn-primary" id="addContactBtn" onclick="openCreateContactFromManage()">Add Contact</button>
       </div>
     </div>
   </div>

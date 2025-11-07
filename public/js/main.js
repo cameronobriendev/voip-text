@@ -5,6 +5,7 @@
     let userDID = null;
     let lastSeenMessageIds = new Set(); // Track message IDs we've already seen
     let pollingInterval = null;
+    let currentContactsTab = 'contacts'; // Track which tab is active in contacts modal
 
     // Toast notification system
     function showToast(message, type = 'success', duration = 4000) {
@@ -140,11 +141,8 @@
     // Load conversations
     async function loadConversations() {
       try {
-        // Check if we should show spam
-        const showSpam = document.getElementById('showSpamCheckbox')?.checked || false;
-        const url = showSpam ? '/api/messages?show_spam=true' : '/api/messages';
-
-        const response = await fetch(url);
+        // Never show spam in conversations list
+        const response = await fetch('/api/messages');
         const data = await response.json();
 
         if (data.success && data.conversations) {
@@ -715,10 +713,44 @@
       renderContactList(filtered);
     });
 
+    // Switch between contacts and spam tabs
+    window.switchContactsTab = function(tab) {
+      currentContactsTab = tab;
+
+      // Update tab UI
+      document.getElementById('contactsTab').classList.toggle('active', tab === 'contacts');
+      document.getElementById('spamTab').classList.toggle('active', tab === 'spam');
+
+      // Update button visibility - hide "Add Contact" button in spam tab
+      const addContactBtn = document.getElementById('addContactBtn');
+      if (tab === 'spam') {
+        addContactBtn.style.display = 'none';
+      } else {
+        addContactBtn.style.display = '';
+      }
+
+      // Re-render the contact list based on current tab
+      const filteredContacts = contacts.filter(c => {
+        if (tab === 'spam') {
+          return c.is_spam === true;
+        } else {
+          return !c.is_spam || c.is_spam === false;
+        }
+      });
+
+      renderManageContactList(filteredContacts);
+    };
+
     // Show manage contacts modal
     async function showManageContactsModal() {
       const modal = document.getElementById('manageContactsModal');
       const contactList = document.getElementById('manageContactList');
+
+      // Reset to contacts tab when opening
+      currentContactsTab = 'contacts';
+      document.getElementById('contactsTab').classList.add('active');
+      document.getElementById('spamTab').classList.remove('active');
+      document.getElementById('addContactBtn').style.display = '';
 
       contactList.innerHTML = '<div class="loading"><div class="spinner"></div>Loading contacts...</div>';
       modal.classList.add('show');
@@ -729,7 +761,9 @@
 
         if (data.success && data.contacts) {
           contacts = data.contacts; // Store for search
-          renderManageContactList(data.contacts);
+          // Filter based on current tab (should be 'contacts' by default)
+          const filteredContacts = data.contacts.filter(c => !c.is_spam || c.is_spam === false);
+          renderManageContactList(filteredContacts);
         } else {
           contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">No contacts found</div></div>';
         }
@@ -744,43 +778,66 @@
       const contactList = document.getElementById('manageContactList');
 
       if (contactsList.length === 0) {
-        contactList.innerHTML = '<div class="empty-state"><div class="empty-state-text">No contacts found</div></div>';
+        const emptyMessage = currentContactsTab === 'spam' ? 'No spam contacts' : 'No contacts found';
+        contactList.innerHTML = `<div class="empty-state"><div class="empty-state-text">${emptyMessage}</div></div>`;
         return;
       }
 
-      contactList.innerHTML = contactsList.map(contact => `
-        <div class="contact-list-item">
-          <div class="contact-list-item-avatar" style="background: ${contact.avatar_color}">
-            ${contact.name.charAt(0).toUpperCase()}
+      // Different rendering for spam tab vs contacts tab
+      if (currentContactsTab === 'spam') {
+        // Spam tab: Only show unmark button
+        contactList.innerHTML = contactsList.map(contact => `
+          <div class="contact-list-item">
+            <div class="contact-list-item-avatar" style="background: ${contact.avatar_color}">
+              ${contact.name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex: 1;">
+              <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+              <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', true)" title="Unmark as spam" style="padding: 8px; border: none; background: rgba(16, 185, 129, 0.2); color: #10b981; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div style="flex: 1;">
-            <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
-            <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
+        `).join('');
+      } else {
+        // Contacts tab: Show mark as spam, edit, and delete buttons
+        contactList.innerHTML = contactsList.map(contact => `
+          <div class="contact-list-item">
+            <div class="contact-list-item-avatar" style="background: ${contact.avatar_color}">
+              ${contact.name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex: 1;">
+              <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+              <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', false)" title="Mark as spam" style="padding: 8px; border: none; background: rgba(255, 152, 0, 0.2); color: #ff9800; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+              </button>
+              <button class="icon-btn" onclick="openEditContactModal('${contact.id}')" title="Edit contact" style="padding: 8px; border: none; background: rgba(74, 144, 226, 0.2); color: #4A90E2; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="icon-btn" onclick="openDeleteContactModal('${contact.id}', '${escapeHtml(contact.name)}')" title="Delete contact" style="padding: 8px; border: none; background: rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', ${contact.is_spam || false})" title="${contact.is_spam ? 'Unmark as spam' : 'Mark as spam'}" style="padding: 8px; border: none; background: ${contact.is_spam ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 152, 0, 0.1)'}; color: ${contact.is_spam ? '#f59e0b' : '#ff9800'}; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                ${contact.is_spam ?
-                  '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' :
-                  '<circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>'
-                }
-              </svg>
-            </button>
-            <button class="icon-btn" onclick="openEditContactModal('${contact.id}')" title="Edit contact" style="padding: 8px; border: none; background: rgba(74, 144, 226, 0.1); color: #4A90E2; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="icon-btn" onclick="openDeleteContactModal('${contact.id}', '${escapeHtml(contact.name)}')" title="Delete contact" style="padding: 8px; border: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
 
     // Close manage contacts modal
@@ -907,10 +964,18 @@
     // Search contacts in manage modal
     document.getElementById('manageContactSearch').addEventListener('input', function(e) {
       const query = e.target.value.toLowerCase();
-      const filtered = contacts.filter(contact =>
-        contact.name.toLowerCase().includes(query) ||
-        contact.phone_number.includes(query)
-      );
+      const filtered = contacts.filter(contact => {
+        // Filter by search query
+        const matchesSearch = contact.name.toLowerCase().includes(query) ||
+          contact.phone_number.includes(query);
+
+        // Filter by current tab
+        if (currentContactsTab === 'spam') {
+          return matchesSearch && contact.is_spam === true;
+        } else {
+          return matchesSearch && (!contact.is_spam || contact.is_spam === false);
+        }
+      });
       renderManageContactList(filtered);
     });
 
@@ -918,7 +983,7 @@
     window.toggleSpam = async function(contactId, contactName, isCurrentlySpam) {
       const action = isCurrentlySpam ? 'unmark' : 'mark';
       const confirmMessage = isCurrentlySpam
-        ? `Unmark "${contactName}" as spam? They will be visible again.`
+        ? `Unmark "${contactName}" as spam? They will be visible again and you'll receive their messages.`
         : `Mark "${contactName}" as spam? You will never see their messages, calls, or voicemails again.`;
 
       if (!confirm(confirmMessage)) return;
@@ -933,7 +998,24 @@
         const data = await response.json();
 
         if (data.success) {
-          await showManageContactsModal(); // Refresh contact list
+          // Reload all contacts
+          const contactsResponse = await fetch('/api/contacts');
+          const contactsData = await contactsResponse.json();
+
+          if (contactsData.success && contactsData.contacts) {
+            contacts = contactsData.contacts;
+
+            // Re-render based on current tab
+            const filteredContacts = contacts.filter(c => {
+              if (currentContactsTab === 'spam') {
+                return c.is_spam === true;
+              } else {
+                return !c.is_spam || c.is_spam === false;
+              }
+            });
+            renderManageContactList(filteredContacts);
+          }
+
           await loadConversations(); // Refresh conversations
           showToast(
             isCurrentlySpam ? 'Contact unmarked as spam' : 'Contact marked as spam and blocked',
@@ -988,11 +1070,6 @@
         showToast('Failed to mark as spam. Please try again.', 'info');
       }
     };
-
-    // Show spam toggle handler
-    document.getElementById('showSpamCheckbox').addEventListener('change', function(e) {
-      loadConversations();
-    });
 
     // Search conversations
     document.getElementById('searchBar').addEventListener('input', function(e) {

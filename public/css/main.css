@@ -633,9 +633,9 @@ body {
 }
 
 .modal {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(103, 64, 142, 0.95);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 28px;
   max-width: 420px;
@@ -660,15 +660,17 @@ body {
 }
 
 .modal-title {
-  color: #1a202c;
+  color: white;
   font-size: 22px;
   font-weight: 600;
   margin-bottom: 8px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .modal-subtitle {
-  color: #4a5568;
+  color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .modal-buttons {
@@ -723,11 +725,13 @@ body {
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
-  background: rgba(0,0,0,0.03);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .contact-list-item:hover {
-  background: rgba(74, 144, 226, 0.1);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .contact-list-item-avatar {
@@ -745,14 +749,16 @@ body {
 }
 
 .contact-list-item-name {
-  color: #1a202c;
+  color: white;
   font-weight: 600;
   font-size: 15px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .contact-list-item-phone {
-  color: #718096;
+  color: rgba(255, 255, 255, 0.85);
   font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .empty-state {
@@ -1176,4 +1182,37 @@ body {
 
 .phone-ringing {
   animation: phonePulse 1.5s ease-in-out infinite;
+}
+
+/* Modal Tabs */
+.modal-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 2px;
+}
+
+.modal-tab {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.modal-tab:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modal-tab.active {
+  color: white;
+  border-bottom-color: rgba(255, 255, 255, 0.9);
 }
