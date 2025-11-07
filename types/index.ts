@@ -14,6 +14,8 @@ export interface Contact {
   phone_number: string;
   avatar_color: string;
   notes?: string;
+  ai_relationship?: string;
+  ai_tone_preference?: string;
   created_at: string;
   updated_at: string;
 }
@@ -115,4 +117,27 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
+}
+
+// AI Draft types
+
+export interface AiDraftRequest {
+  messageId: string;
+  contactId: string;
+  relationship?: string;
+  tone?: string;
+  additionalContext?: string;
+}
+
+export interface AiDraftReply {
+  id: 'brief' | 'medium' | 'detailed';
+  label: string;
+  text: string;
+}
+
+export interface AiDraftResponse {
+  success: boolean;
+  replies?: AiDraftReply[];
+  cached?: boolean;
+  error?: string;
 }

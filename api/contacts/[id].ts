@@ -62,7 +62,7 @@ export default async function handler(req: Request): Promise<Response> {
     } else if (req.method === 'PUT') {
       // Update contact
       const body = await req.json();
-      const { name, phone_number, notes, avatar_color } = body;
+      const { name, phone_number, notes, avatar_color, ai_relationship, ai_tone_preference } = body;
 
       // Check if contact exists
       const existing : Contact[] = await sql`
@@ -87,6 +87,8 @@ export default async function handler(req: Request): Promise<Response> {
       if (name) updateFields.name = name;
       if (notes !== undefined) updateFields.notes = notes;
       if (avatar_color) updateFields.avatar_color = avatar_color;
+      if (ai_relationship !== undefined) updateFields.ai_relationship = ai_relationship;
+      if (ai_tone_preference !== undefined) updateFields.ai_tone_preference = ai_tone_preference;
 
       if (phone_number) {
         updateFields.phone_number = formatPhoneE164(phone_number);
@@ -100,6 +102,8 @@ export default async function handler(req: Request): Promise<Response> {
           phone_number = COALESCE(${updateFields.phone_number || null}, phone_number),
           notes = ${updateFields.notes !== undefined ? updateFields.notes : existing[0].notes},
           avatar_color = COALESCE(${updateFields.avatar_color || null}, avatar_color),
+          ai_relationship = ${updateFields.ai_relationship !== undefined ? updateFields.ai_relationship : existing[0].ai_relationship},
+          ai_tone_preference = ${updateFields.ai_tone_preference !== undefined ? updateFields.ai_tone_preference : existing[0].ai_tone_preference},
           updated_at = NOW()
         WHERE id = ${id}
         RETURNING *
