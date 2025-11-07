@@ -1600,8 +1600,33 @@
 
     // Select contact and load messages
     window.selectContact = async function(contactId) {
-      const conv = contacts.find(c => c.contact_id === contactId);
-      if (!conv) return;
+      let conv = contacts.find(c => c.contact_id === contactId);
+
+      // If contact not in conversations (new conversation), fetch from contacts API
+      if (!conv) {
+        try {
+          const response = await fetch('/api/contacts');
+          const data = await response.json();
+
+          if (data.success && data.contacts) {
+            const contact = data.contacts.find(c => c.id === contactId);
+            if (contact) {
+              conv = {
+                contact_id: contact.id,
+                contact_name: contact.name,
+                name: contact.name,
+                phone_number: contact.phone_number,
+                avatar_color: contact.avatar_color
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch contact:', error);
+          return;
+        }
+
+        if (!conv) return; // Still not found
+      }
 
       currentContact = {
         id: conv.contact_id,
