@@ -2074,24 +2074,30 @@
       document.getElementById('aiDraftResults').style.display = 'block';
 
       const cardsContainer = document.getElementById('aiDraftCards');
-      cardsContainer.innerHTML = replies.map((reply, index) => {
-        const wordCount = reply.text.split(/\s+/).length;
-        return `
-          <div class="ai-draft-card" data-reply-index="${index}">
-            <div class="ai-draft-card-header">
-              <div class="ai-draft-card-label">${reply.label}</div>
-              <div class="ai-draft-card-count">${wordCount} words</div>
-            </div>
-            <div class="ai-draft-card-text">${escapeHtml(reply.text)}</div>
-          </div>
-        `;
-      }).join('');
 
-      // Add click handlers
-      document.querySelectorAll('.ai-draft-card').forEach((card, index) => {
+      // Clear existing cards
+      cardsContainer.innerHTML = '';
+
+      // Create and append each card with event listener
+      replies.forEach(reply => {
+        const wordCount = reply.text.split(/\s+/).length;
+
+        const card = document.createElement('div');
+        card.className = 'ai-draft-card';
+        card.innerHTML = `
+          <div class="ai-draft-card-header">
+            <div class="ai-draft-card-label">${reply.label}</div>
+            <div class="ai-draft-card-count">${wordCount} words</div>
+          </div>
+          <div class="ai-draft-card-text">${escapeHtml(reply.text)}</div>
+        `;
+
+        // Add click handler with proper closure
         card.addEventListener('click', () => {
-          selectAiReply(replies[index].text);
+          selectAiReply(reply.text);
         });
+
+        cardsContainer.appendChild(card);
       });
 
       if (cached) {
