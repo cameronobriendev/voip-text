@@ -498,26 +498,22 @@
       text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
 
-    /* Note message styling */
+    /* Note message styling - styled like outbound but yellow */
     .message.note {
-      justify-content: center;
-      opacity: 0.9;
+      align-self: flex-end;
+      align-items: flex-end;
     }
 
     .message.note .message-bubble {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde047 100%);
-      color: #78350f;
-      border: 2px dashed rgba(251, 191, 36, 0.5);
-      font-style: italic;
-      max-width: 80%;
+      background: rgba(245, 158, 11, 0.9);
+      color: white;
+      border-bottom-right-radius: 5px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.15);
     }
 
     .message.note .message-timestamp {
-      color: rgba(120, 53, 15, 0.7);
-    }
-
-    .message.note .message-bubble::before {
-      content: "📝 ";
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
 
     .message-input-area {
