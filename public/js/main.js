@@ -140,7 +140,11 @@
     // Load conversations
     async function loadConversations() {
       try {
-        const response = await fetch('/api/messages');
+        // Check if we should show spam
+        const showSpam = document.getElementById('showSpamCheckbox')?.checked || false;
+        const url = showSpam ? '/api/messages?show_spam=true' : '/api/messages';
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success && data.conversations) {
@@ -257,11 +261,19 @@
               <div class="chat-header-phone" onclick="openDialerWithNumber('${escapeHtml(currentContact.phone_number)}')" title="Click to call">${escapeHtml(currentContact.phone_number)}</div>
             </div>
           </div>
-          <button class="delete-conversation-btn" onclick="showDeleteModal()" title="Delete Conversation">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
-            </svg>
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="delete-conversation-btn" onclick="toggleSpamFromChat()" title="Mark as Spam" style="background: rgba(255, 152, 0, 0.2); border-color: rgba(255, 152, 0, 0.4);">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+            </button>
+            <button class="delete-conversation-btn" onclick="showDeleteModal()" title="Delete Conversation">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="messages-container" id="messagesContainer">
           <div class="loading">
@@ -746,6 +758,14 @@
             <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
           </div>
           <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" onclick="toggleSpam('${contact.id}', '${escapeHtml(contact.name)}', ${contact.is_spam || false})" title="${contact.is_spam ? 'Unmark as spam' : 'Mark as spam'}" style="padding: 8px; border: none; background: ${contact.is_spam ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 152, 0, 0.1)'}; color: ${contact.is_spam ? '#f59e0b' : '#ff9800'}; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                ${contact.is_spam ?
+                  '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' :
+                  '<circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>'
+                }
+              </svg>
+            </button>
             <button class="icon-btn" onclick="openEditContactModal('${contact.id}')" title="Edit contact" style="padding: 8px; border: none; background: rgba(74, 144, 226, 0.1); color: #4A90E2; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -892,6 +912,86 @@
         contact.phone_number.includes(query)
       );
       renderManageContactList(filtered);
+    });
+
+    // Spam marking functions
+    window.toggleSpam = async function(contactId, contactName, isCurrentlySpam) {
+      const action = isCurrentlySpam ? 'unmark' : 'mark';
+      const confirmMessage = isCurrentlySpam
+        ? `Unmark "${contactName}" as spam? They will be visible again.`
+        : `Mark "${contactName}" as spam? You will never see their messages, calls, or voicemails again.`;
+
+      if (!confirm(confirmMessage)) return;
+
+      try {
+        const response = await fetch(`/api/contacts/${contactId}/spam`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_spam: !isCurrentlySpam }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          await showManageContactsModal(); // Refresh contact list
+          await loadConversations(); // Refresh conversations
+          showToast(
+            isCurrentlySpam ? 'Contact unmarked as spam' : 'Contact marked as spam and blocked',
+            'success'
+          );
+        } else {
+          showToast('Failed to update spam status: ' + (data.error || 'Unknown error'), 'info');
+        }
+      } catch (error) {
+        console.error('Failed to toggle spam:', error);
+        showToast('Failed to update spam status. Please try again.', 'info');
+      }
+    };
+
+    window.toggleSpamFromChat = async function() {
+      if (!currentContact) return;
+
+      const confirmMessage = `Mark "${currentContact.name}" as spam? You will never see their messages, calls, or voicemails again.`;
+
+      if (!confirm(confirmMessage)) return;
+
+      try {
+        const response = await fetch(`/api/contacts/${currentContact.id}/spam`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_spam: true }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          await loadConversations(); // Refresh conversations
+          showToast('Contact marked as spam and blocked', 'success');
+
+          // Clear the chat area
+          const chatArea = document.getElementById('chatArea');
+          chatArea.innerHTML = `
+            <div class="empty-state">
+              <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <div class="empty-state-text">Select a conversation</div>
+              <div class="empty-state-subtext">Choose a contact to start messaging</div>
+            </div>
+          `;
+          currentContact = null;
+        } else {
+          showToast('Failed to mark as spam: ' + (data.error || 'Unknown error'), 'info');
+        }
+      } catch (error) {
+        console.error('Failed to mark as spam:', error);
+        showToast('Failed to mark as spam. Please try again.', 'info');
+      }
+    };
+
+    // Show spam toggle handler
+    document.getElementById('showSpamCheckbox').addEventListener('change', function(e) {
+      loadConversations();
     });
 
     // Search conversations

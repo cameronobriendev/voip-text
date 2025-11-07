@@ -29,8 +29,13 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const sql = getDB();
 
+    // Check if we should show spam (default: false)
+    const url = new URL(req.url);
+    const showSpam = url.searchParams.get('show_spam') === 'true';
+
     // Get all conversations with latest message
     // Group by contact_id and get the most recent message for each
+    // Filter out spam contacts unless explicitly requested
     const conversations = await sql`
       SELECT DISTINCT ON (m.contact_id)
         m.contact_id,
@@ -43,9 +48,11 @@ export default async function handler(req: Request): Promise<Response> {
         m.created_at,
         c.name as contact_name,
         c.phone_number,
-        c.avatar_color
+        c.avatar_color,
+        c.is_spam
       FROM messages m
       LEFT JOIN contacts c ON m.contact_id = c.id
+      WHERE ${showSpam ? sql`TRUE` : sql`(c.is_spam IS NULL OR c.is_spam = FALSE)`}
       ORDER BY m.contact_id, m.created_at DESC
     `;
 
