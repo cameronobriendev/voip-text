@@ -1187,6 +1187,19 @@ body {
   animation: phonePulse 1.5s ease-in-out infinite;
 }
 
+/* Input placeholder styling for modals */
+#createContactForm input::placeholder,
+#editContactForm input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#createContactForm input:focus,
+#editContactForm input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Modal Tabs */
 .modal-tabs {
   display: flex;
