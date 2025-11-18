@@ -11,3 +11,7 @@ public/js/*.js.map
 public/js/*.d.ts
 *.tsbuildinfo
 .env*.local
+
+# Ignore all markdown except README
+*.md
+!README.md
