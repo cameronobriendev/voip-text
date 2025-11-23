@@ -209,7 +209,7 @@
             </div>
             <div class="conversation-details">
               <div class="conversation-header">
-                <span class="contact-name">${escapeHtml(name)}</span>
+                <span class="contact-name">${formatNamePrivacy(name)}</span>
                 ${time ? `<span class="message-time">${time}</span>` : ''}
               </div>
               <div class="last-message">${escapeHtml(preview)}</div>
@@ -275,7 +275,7 @@
             </div>
             <div>
               <div class="chat-header-name" style="display: flex; align-items: center; gap: 8px;">
-                ${escapeHtml(currentContact.name)}
+                ${formatNamePrivacy(currentContact.name)}
                 <svg onclick="openEditContactModal('${currentContact.id}', true)" style="width: 16px; height: 16px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -675,7 +675,7 @@
             ${contact.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+            <div class="contact-list-item-name">${formatNamePrivacy(contact.name)}</div>
             <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
           </div>
         </div>
@@ -831,7 +831,7 @@
               ${contact.name.charAt(0).toUpperCase()}
             </div>
             <div style="flex: 1;">
-              <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+              <div class="contact-list-item-name">${formatNamePrivacy(contact.name)}</div>
               <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -852,7 +852,7 @@
               ${contact.name.charAt(0).toUpperCase()}
             </div>
             <div style="flex: 1;">
-              <div class="contact-list-item-name">${escapeHtml(contact.name)}</div>
+              <div class="contact-list-item-name">${formatNamePrivacy(contact.name)}</div>
               <div class="contact-list-item-phone">${escapeHtml(contact.phone_number)}</div>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -1262,6 +1262,18 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Format name with last name wrapped for privacy blur
+    function formatNamePrivacy(name) {
+      if (!name) return '';
+      const parts = name.trim().split(' ');
+      if (parts.length === 1) {
+        return escapeHtml(parts[0]);
+      }
+      const firstName = escapeHtml(parts[0]);
+      const lastName = escapeHtml(parts.slice(1).join(' '));
+      return `${firstName} <span class="blur-last-name">${lastName}</span>`;
     }
 
     // Poll for new messages

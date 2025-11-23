@@ -1431,14 +1431,11 @@ body {
 }
 
 /* Privacy Mode - Hide sensitive information */
-body.privacy-mode .conversation-name,
+body.privacy-mode .blur-last-name,
 body.privacy-mode .conversation-preview,
-body.privacy-mode .chat-contact-name,
-body.privacy-mode .chat-contact-phone,
+body.privacy-mode .chat-header-phone,
+body.privacy-mode .contact-list-item-phone,
 body.privacy-mode .message-content,
-body.privacy-mode .contact-name,
-body.privacy-mode .contact-phone,
-body.privacy-mode .user-name,
 body.privacy-mode #phoneInput,
 body.privacy-mode .phone-dial-number,
 body.privacy-mode .call-status-number {
@@ -1446,8 +1443,7 @@ body.privacy-mode .call-status-number {
   user-select: none;
 }
 
-body.privacy-mode .conversation-name:hover,
-body.privacy-mode .chat-contact-name:hover,
+body.privacy-mode .blur-last-name:hover,
 body.privacy-mode .message-content:hover {
   filter: blur(4px);
 }
