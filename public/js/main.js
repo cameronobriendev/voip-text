@@ -188,10 +188,13 @@
         const selector = document.getElementById('phoneContactSelector');
         if (selector) {
           Array.from(selector.options).forEach(option => {
-            if (option.value && !option.dataset.original) {
-              option.dataset.original = option.textContent;
+            if (option.value) {
+              // Store original if not already stored
+              if (!option.dataset.original) {
+                option.dataset.original = option.textContent;
+              }
               // Format: "Name (phone)" -> mask last name and last 4 of phone
-              const text = option.textContent;
+              const text = option.dataset.original;
               const match = text.match(/^(.+?) (.+?) \((.+)\)$/);
               if (match) {
                 const firstName = match[1];
@@ -199,6 +202,15 @@
                 const phone = match[3];
                 const maskedPhone = phone.length >= 4 ? phone.slice(0, -4) + '••••' : phone;
                 option.textContent = `${firstName} ${lastName} (${maskedPhone})`;
+              } else {
+                // Single name format: "Name (phone)"
+                const singleMatch = text.match(/^(.+?) \((.+)\)$/);
+                if (singleMatch) {
+                  const name = singleMatch[1];
+                  const phone = singleMatch[2];
+                  const maskedPhone = phone.length >= 4 ? phone.slice(0, -4) + '••••' : phone;
+                  option.textContent = `${name} (${maskedPhone})`;
+                }
               }
             }
           });
@@ -230,12 +242,9 @@
         }
       }
 
-      // Restore saved privacy mode state
-      if (localStorage.getItem('privacyMode') === 'true') {
-        document.body.classList.add('privacy-mode');
-        // Apply after DOM renders
-        setTimeout(applyPrivacyMode, 100);
-      }
+      // Force privacy mode off on load
+      localStorage.removeItem('privacyMode');
+      document.body.classList.remove('privacy-mode');
 
       privacyBtn.addEventListener('click', () => {
         document.body.classList.toggle('privacy-mode');
@@ -1663,16 +1672,11 @@
         populateContactSelector();
       }
 
-      // Set the phone number with formatting (mask if privacy mode)
+      // Set the phone number with formatting
       const phoneDisplay = document.getElementById('phoneDisplay');
       const formatted = formatPhoneDisplay(digitsOnly);
       phoneDisplay.dataset.original = digitsOnly;
-      if (document.body.classList.contains('privacy-mode') && digitsOnly.length >= 4) {
-        // Replace last 4 digits with bullets
-        phoneDisplay.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
-      } else {
-        phoneDisplay.value = formatted;
-      }
+      phoneDisplay.value = formatted;
 
       // Auto-select the contact in the dropdown if they exist
       const selector = document.getElementById('phoneContactSelector');
@@ -1732,12 +1736,7 @@
         const phoneDisplay = document.getElementById('phoneDisplay');
         const formatted = formatPhoneDisplay(phoneNumber);
         phoneDisplay.dataset.original = phoneNumber;
-        if (document.body.classList.contains('privacy-mode') && phoneNumber.length >= 4) {
-          // Replace last 4 digits with bullets
-          phoneDisplay.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
-        } else {
-          phoneDisplay.value = formatted;
-        }
+        phoneDisplay.value = formatted;
       }
     };
 
@@ -1800,18 +1799,7 @@
 
       // Format the display
       const formatted = formatPhoneDisplay(digits);
-
-      // Mask if privacy mode - hide digits 8+ as they're typed (subscriber number)
-      if (document.body.classList.contains('privacy-mode') && digits.length >= 8) {
-        // Mask any digit after position 7 (the subscriber number)
-        let digitCount = 0;
-        this.value = formatted.replace(/\d/g, (match) => {
-          digitCount++;
-          return digitCount > 7 ? '•' : match;
-        });
-      } else {
-        this.value = formatted;
-      }
+      this.value = formatted;
 
       isFormattingDialer = false;
     });
