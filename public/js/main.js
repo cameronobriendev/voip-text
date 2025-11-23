@@ -138,6 +138,21 @@
       }
     });
 
+    // Privacy mode toggle
+    const privacyBtn = document.getElementById('privacyToggleBtn');
+    if (privacyBtn) {
+      // Restore saved privacy mode state
+      if (localStorage.getItem('privacyMode') === 'true') {
+        document.body.classList.add('privacy-mode');
+      }
+
+      privacyBtn.addEventListener('click', () => {
+        document.body.classList.toggle('privacy-mode');
+        const isPrivate = document.body.classList.contains('privacy-mode');
+        localStorage.setItem('privacyMode', isPrivate);
+      });
+    }
+
     // Load conversations
     async function loadConversations() {
       try {

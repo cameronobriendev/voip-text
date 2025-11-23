@@ -1404,3 +1404,59 @@ body {
   border-color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* Privacy Toggle Button */
+.privacy-toggle-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.privacy-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.privacy-toggle-btn .privacy-icon {
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Privacy Mode - Hide sensitive information */
+body.privacy-mode .conversation-name,
+body.privacy-mode .conversation-preview,
+body.privacy-mode .chat-contact-name,
+body.privacy-mode .chat-contact-phone,
+body.privacy-mode .message-content,
+body.privacy-mode .contact-name,
+body.privacy-mode .contact-phone,
+body.privacy-mode .user-name,
+body.privacy-mode #phoneInput,
+body.privacy-mode .phone-dial-number,
+body.privacy-mode .call-status-number {
+  filter: blur(8px);
+  user-select: none;
+}
+
+body.privacy-mode .conversation-name:hover,
+body.privacy-mode .chat-contact-name:hover,
+body.privacy-mode .message-content:hover {
+  filter: blur(4px);
+}
+
+/* Toggle icon visibility based on mode */
+body.privacy-mode .privacy-icon-visible {
+  display: none !important;
+}
+
+body.privacy-mode .privacy-icon-hidden {
+  display: block !important;
+}
