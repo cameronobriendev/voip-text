@@ -242,14 +242,17 @@
         }
       }
 
-      // Force privacy mode off on load
-      localStorage.removeItem('privacyMode');
-      document.body.classList.remove('privacy-mode');
+      // Restore privacy mode state from localStorage
+      const savedPrivacyMode = localStorage.getItem('privacyMode');
+      if (savedPrivacyMode === 'true') {
+        document.body.classList.add('privacy-mode');
+        applyPrivacyMode();
+      }
 
       privacyBtn.addEventListener('click', () => {
         document.body.classList.toggle('privacy-mode');
         const isPrivate = document.body.classList.contains('privacy-mode');
-        localStorage.setItem('privacyMode', isPrivate);
+        localStorage.setItem('privacyMode', isPrivate ? 'true' : 'false');
 
         if (isPrivate) {
           applyPrivacyMode();
