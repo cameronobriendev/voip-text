@@ -1033,7 +1033,18 @@
         if (data.success && data.contact) {
           contactToEdit = data.contact;
           document.getElementById('editContactId').value = contactId;
-          document.getElementById('editContactName').value = data.contact.name;
+
+          // Mask name in input if privacy mode
+          const nameInput = document.getElementById('editContactName');
+          nameInput.value = data.contact.name;
+          nameInput.dataset.original = data.contact.name;
+          if (document.body.classList.contains('privacy-mode')) {
+            const name = data.contact.name;
+            const parts = name.trim().split(' ');
+            if (parts.length > 1) {
+              nameInput.value = parts[0] + ' ' + '•'.repeat(parts.slice(1).join(' ').length);
+            }
+          }
 
           // Mask phone in input if privacy mode
           const phoneInput = document.getElementById('editContactPhone');
@@ -1073,9 +1084,10 @@
       e.preventDefault();
 
       const contactId = document.getElementById('editContactId').value;
-      const name = document.getElementById('editContactName').value.trim();
+      const nameInput = document.getElementById('editContactName');
       const phoneInput = document.getElementById('editContactPhone');
-      // Use original value if masked, otherwise use input value
+      // Use original values if masked, otherwise use input values
+      const name = (nameInput.dataset.original || nameInput.value).trim();
       const phone = (phoneInput.dataset.original || phoneInput.value).trim();
 
       if (!name || !phone) {
@@ -1655,8 +1667,9 @@
       const phoneDisplay = document.getElementById('phoneDisplay');
       const formatted = formatPhoneDisplay(digitsOnly);
       phoneDisplay.dataset.original = digitsOnly;
-      if (document.body.classList.contains('privacy-mode') && formatted.length >= 4) {
-        phoneDisplay.value = formatted.slice(0, -4) + '••••';
+      if (document.body.classList.contains('privacy-mode') && digitsOnly.length >= 4) {
+        // Replace last 4 digits with bullets
+        phoneDisplay.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
       } else {
         phoneDisplay.value = formatted;
       }
@@ -1719,8 +1732,9 @@
         const phoneDisplay = document.getElementById('phoneDisplay');
         const formatted = formatPhoneDisplay(phoneNumber);
         phoneDisplay.dataset.original = phoneNumber;
-        if (document.body.classList.contains('privacy-mode') && formatted.length >= 4) {
-          phoneDisplay.value = formatted.slice(0, -4) + '••••';
+        if (document.body.classList.contains('privacy-mode') && phoneNumber.length >= 4) {
+          // Replace last 4 digits with bullets
+          phoneDisplay.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
         } else {
           phoneDisplay.value = formatted;
         }
