@@ -1,4 +1,4 @@
-# BirdText
+# voip.ms SMS Platform
 
 A personal SMS and voicemail platform for [voip.ms](https://voip.ms). Send and receive texts, make WebRTC calls, and get AI-powered reply suggestions—all through a clean web interface.
 
