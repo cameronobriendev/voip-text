@@ -141,16 +141,46 @@
     // Privacy mode toggle
     const privacyBtn = document.getElementById('privacyToggleBtn');
     if (privacyBtn) {
+      // Function to replace text with bullets
+      function applyPrivacyMode() {
+        document.querySelectorAll('.blur-last-name').forEach(el => {
+          if (!el.dataset.original) {
+            el.dataset.original = el.textContent;
+          }
+          el.textContent = '•'.repeat(el.dataset.original.length);
+        });
+      }
+
+      // Function to restore original text
+      function removePrivacyMode() {
+        document.querySelectorAll('.blur-last-name').forEach(el => {
+          if (el.dataset.original) {
+            el.textContent = el.dataset.original;
+          }
+        });
+      }
+
       // Restore saved privacy mode state
       if (localStorage.getItem('privacyMode') === 'true') {
         document.body.classList.add('privacy-mode');
+        // Apply after DOM renders
+        setTimeout(applyPrivacyMode, 100);
       }
 
       privacyBtn.addEventListener('click', () => {
         document.body.classList.toggle('privacy-mode');
         const isPrivate = document.body.classList.contains('privacy-mode');
         localStorage.setItem('privacyMode', isPrivate);
+
+        if (isPrivate) {
+          applyPrivacyMode();
+        } else {
+          removePrivacyMode();
+        }
       });
+
+      // Re-apply privacy mode when content updates
+      window.applyPrivacyMode = applyPrivacyMode;
     }
 
     // Load conversations
@@ -217,6 +247,11 @@
           </div>
         `;
       }).join('');
+
+      // Re-apply privacy mode if active
+      if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+        window.applyPrivacyMode();
+      }
     }
 
     // Select contact and load messages
@@ -320,6 +355,11 @@
       `;
 
       setupMessageHandlers();
+
+      // Re-apply privacy mode if active
+      if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+        window.applyPrivacyMode();
+      }
 
       try {
         const response = await fetch(`/api/messages/conversation/${contactId}`);

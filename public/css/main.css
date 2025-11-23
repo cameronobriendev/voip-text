@@ -1430,23 +1430,7 @@ body {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Privacy Mode - Hide sensitive information */
-body.privacy-mode .blur-last-name,
-body.privacy-mode .conversation-preview,
-body.privacy-mode .chat-header-phone,
-body.privacy-mode .contact-list-item-phone,
-body.privacy-mode .message-content,
-body.privacy-mode #phoneInput,
-body.privacy-mode .phone-dial-number,
-body.privacy-mode .call-status-number {
-  filter: blur(8px);
-  user-select: none;
-}
-
-body.privacy-mode .blur-last-name:hover,
-body.privacy-mode .message-content:hover {
-  filter: blur(4px);
-}
+/* Privacy Mode - no special styles needed, JS handles text replacement */
 
 /* Toggle icon visibility based on mode */
 body.privacy-mode .privacy-icon-visible {
