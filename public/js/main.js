@@ -1765,8 +1765,29 @@
 
     // Clear display
     function clearDisplay() {
-      document.getElementById('phoneDisplay').value = '';
+      const display = document.getElementById('phoneDisplay');
+      display.value = '';
+      display.dataset.original = '';
     }
+
+    // Handle keyboard input in dialer
+    document.getElementById('phoneDisplay').addEventListener('input', function(e) {
+      const display = e.target;
+      const digits = display.value.replace(/\D/g, '');
+
+      // Store original digits
+      display.dataset.original = digits;
+
+      // Format the display
+      const formatted = formatPhoneDisplay(digits);
+
+      // Mask if privacy mode
+      if (document.body.classList.contains('privacy-mode') && digits.length >= 4) {
+        display.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
+      } else {
+        display.value = formatted;
+      }
+    });
 
     // Update call status
     function updateCallStatus(message, statusClass = '') {
