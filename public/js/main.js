@@ -1778,8 +1778,22 @@
       if (isFormattingDialer) return;
       isFormattingDialer = true;
 
-      // Extract only digits from what user typed
-      const digits = this.value.replace(/[^\d]/g, '');
+      // Get the new digit typed (last char if it's a digit)
+      const inputValue = this.value;
+      const newDigit = inputValue.match(/\d$/) ? inputValue.match(/\d$/)[0] : '';
+
+      // Get existing original digits and append new digit
+      let digits = this.dataset.original || '';
+
+      // Check if user is deleting (input shorter than expected)
+      const inputDigits = inputValue.replace(/[^\d]/g, '');
+      if (inputDigits.length < digits.length || !newDigit) {
+        // User deleted - use only digits from input
+        digits = inputDigits;
+      } else if (newDigit && inputDigits.length > digits.length) {
+        // User added a digit
+        digits = digits + newDigit;
+      }
 
       // Store original digits
       this.dataset.original = digits;
