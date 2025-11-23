@@ -1034,7 +1034,18 @@
           contactToEdit = data.contact;
           document.getElementById('editContactId').value = contactId;
           document.getElementById('editContactName').value = data.contact.name;
-          document.getElementById('editContactPhone').value = data.contact.phone_number;
+
+          // Mask phone in input if privacy mode
+          const phoneInput = document.getElementById('editContactPhone');
+          phoneInput.value = data.contact.phone_number;
+          phoneInput.dataset.original = data.contact.phone_number;
+          if (document.body.classList.contains('privacy-mode')) {
+            const phone = data.contact.phone_number;
+            if (phone.length >= 4) {
+              phoneInput.value = phone.slice(0, -4) + '••••';
+            }
+          }
+
           document.getElementById('manageContactsModal').classList.remove('show');
           document.getElementById('editContactModal').classList.add('show');
         } else {
@@ -1063,7 +1074,9 @@
 
       const contactId = document.getElementById('editContactId').value;
       const name = document.getElementById('editContactName').value.trim();
-      const phone = document.getElementById('editContactPhone').value.trim();
+      const phoneInput = document.getElementById('editContactPhone');
+      // Use original value if masked, otherwise use input value
+      const phone = (phoneInput.dataset.original || phoneInput.value).trim();
 
       if (!name || !phone) {
         showToast('Please fill in all fields', 'info');
@@ -1627,8 +1640,15 @@
         populateContactSelector();
       }
 
-      // Set the phone number with formatting
-      document.getElementById('phoneDisplay').value = formatPhoneDisplay(digitsOnly);
+      // Set the phone number with formatting (mask if privacy mode)
+      const phoneDisplay = document.getElementById('phoneDisplay');
+      const formatted = formatPhoneDisplay(digitsOnly);
+      phoneDisplay.dataset.original = digitsOnly;
+      if (document.body.classList.contains('privacy-mode') && formatted.length >= 4) {
+        phoneDisplay.value = formatted.slice(0, -4) + '••••';
+      } else {
+        phoneDisplay.value = formatted;
+      }
 
       // Auto-select the contact in the dropdown if they exist
       const selector = document.getElementById('phoneContactSelector');
@@ -1685,7 +1705,14 @@
       const phoneNumber = selector.value;
 
       if (phoneNumber) {
-        document.getElementById('phoneDisplay').value = formatPhoneDisplay(phoneNumber);
+        const phoneDisplay = document.getElementById('phoneDisplay');
+        const formatted = formatPhoneDisplay(phoneNumber);
+        phoneDisplay.dataset.original = phoneNumber;
+        if (document.body.classList.contains('privacy-mode') && formatted.length >= 4) {
+          phoneDisplay.value = formatted.slice(0, -4) + '••••';
+        } else {
+          phoneDisplay.value = formatted;
+        }
       }
     };
 
@@ -1844,7 +1871,9 @@
     function showCallConfirm() {
       console.log('[Phone] Call button clicked');
 
-      const phoneNumber = document.getElementById('phoneDisplay').value.trim();
+      const phoneDisplay = document.getElementById('phoneDisplay');
+      // Use original unmasked value if available
+      const phoneNumber = (phoneDisplay.dataset.original || phoneDisplay.value.replace(/•/g, '')).trim();
       if (!phoneNumber) {
         console.warn('[Phone] No phone number entered');
         updateCallStatus('Enter a number first', 'error');
@@ -1863,7 +1892,8 @@
       const cleanedNumber = phoneNumber.replace(/\D/g, '');
       const contact = contacts.find(c => c.phone_number.replace(/\D/g, '') === cleanedNumber);
       // Use contact name if found, otherwise use phone number
-      const displayName = contact ? (contact.contact_name || contact.name) : phoneNumber;
+      const contactName = contact ? (contact.contact_name || contact.name) : phoneNumber;
+      const displayName = maskForPrivacy(contactName);
 
       console.log('[Phone] Showing call confirmation for:', displayName, '(contact found:', !!contact, ')');
 
@@ -1903,7 +1933,9 @@
 
     // Make outbound call (actual implementation)
     function actuallyMakeCall() {
-      const phoneNumber = document.getElementById('phoneDisplay').value.trim();
+      const phoneDisplay = document.getElementById('phoneDisplay');
+      // Use original unmasked value if available
+      const phoneNumber = (phoneDisplay.dataset.original || phoneDisplay.value.replace(/•/g, '')).trim();
       const formattedNumber = formatForDialing(phoneNumber);
 
       console.log('[Phone] ===== INITIATING CALL =====');
