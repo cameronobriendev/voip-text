@@ -1787,11 +1787,11 @@
       // Format the display
       const formatted = formatPhoneDisplay(digits);
 
-      // Mask if privacy mode - only last 4 digits
-      if (document.body.classList.contains('privacy-mode') && digits.length >= 4) {
-        // Replace only the last 4 digits, keeping formatting
+      // Mask if privacy mode - only last 4 digits of complete numbers (10+ digits)
+      if (document.body.classList.contains('privacy-mode') && digits.length >= 10) {
+        // Replace only the last 4 digits (subscriber number), keeping formatting
         let digitCount = 0;
-        const totalDigits = (formatted.match(/\d/g) || []).length;
+        const totalDigits = digits.length;
         this.value = formatted.replace(/\d/g, (match) => {
           digitCount++;
           return digitCount > totalDigits - 4 ? '•' : match;
