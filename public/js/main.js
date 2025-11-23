@@ -106,12 +106,21 @@
           userNameEl.textContent = formatDID(userDID);
           userNameEl.title = 'Click to copy';
 
+          // Apply privacy mode to the newly loaded phone number
+          if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+            window.applyPrivacyMode();
+          }
+
           // Add click-to-copy functionality - copy digits only
           userNameEl.addEventListener('click', async () => {
             try {
               const digitsOnly = userDID.replace(/\D/g, '');
               await navigator.clipboard.writeText(digitsOnly);
-              showToast(`Copied ${digitsOnly} to clipboard!`, 'success');
+              // Mask number in toast if privacy mode is on
+              const displayNum = document.body.classList.contains('privacy-mode')
+                ? digitsOnly.slice(0, -4) + '••••'
+                : digitsOnly;
+              showToast(`Copied ${displayNum} to clipboard!`, 'success');
             } catch (error) {
               console.error('Failed to copy:', error);
               showToast('Failed to copy to clipboard', 'info');
@@ -164,11 +173,12 @@
 
         // Mask user's phone number in top left (last 4 digits)
         const userNameEl = document.getElementById('userName');
-        if (userNameEl) {
+        if (userNameEl && userNameEl.textContent !== 'Loading...') {
           if (!userNameEl.dataset.original) {
             userNameEl.dataset.original = userNameEl.textContent;
           }
           const phone = userNameEl.dataset.original;
+          // Replace last 4 characters with bullets
           if (phone.length >= 4) {
             userNameEl.textContent = phone.slice(0, -4) + '••••';
           }
@@ -1158,8 +1168,9 @@
     window.showMarkSpamModal = function(contactId, contactName) {
       pendingSpamContactId = contactId;
       pendingSpamContactName = contactName;
+      const displayName = maskForPrivacy(contactName);
       document.getElementById('markSpamText').textContent =
-        `Mark "${contactName}" as spam? You will never see their messages, calls, or voicemails again.`;
+        `Mark "${displayName}" as spam? You will never see their messages, calls, or voicemails again.`;
       document.getElementById('markSpamModal').classList.add('show');
     };
 
@@ -1389,6 +1400,25 @@
       const firstName = escapeHtml(parts[0]);
       const lastName = escapeHtml(parts.slice(1).join(' '));
       return `${firstName} <span class="blur-last-name">${lastName}</span>`;
+    }
+
+    // Mask text for display in modals when privacy mode is on
+    function maskForPrivacy(text) {
+      if (!document.body.classList.contains('privacy-mode')) {
+        return text;
+      }
+      if (!text) return '';
+      // Check if it looks like a phone number (contains digits and common phone chars)
+      if (/[\d\(\)\-\+\s]{7,}/.test(text)) {
+        // It's a phone number - mask last 4 digits
+        return text.replace(/(\d{4})$/, '••••').replace(/(\d{4})\)$/, '••••)');
+      }
+      // It's a name - mask everything after first word
+      const parts = text.trim().split(' ');
+      if (parts.length === 1) {
+        return text;
+      }
+      return parts[0] + ' ' + '•'.repeat(parts.slice(1).join(' ').length);
     }
 
     // Poll for new messages
@@ -2112,9 +2142,10 @@
       currentAiDraftContactId = contactId;
       aiDraftContext = '';
 
-      // Set contact name in modal
-      document.getElementById('aiDraftContactName').textContent = currentContact.name;
-      document.getElementById('aiDraftContactName2').textContent = currentContact.name;
+      // Set contact name in modal (mask if privacy mode)
+      const displayName = maskForPrivacy(currentContact.name);
+      document.getElementById('aiDraftContactName').textContent = displayName;
+      document.getElementById('aiDraftContactName2').textContent = displayName;
 
       // Load cached AI preferences from contact
       document.getElementById('aiRelationship').value = currentContact.ai_relationship || '';
