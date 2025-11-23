@@ -1789,7 +1789,13 @@
 
       // Mask if privacy mode - only last 4 digits
       if (document.body.classList.contains('privacy-mode') && digits.length >= 4) {
-        this.value = formatted.replace(/\d(?=\d{0,3}$)/g, '•');
+        // Replace only the last 4 digits, keeping formatting
+        let digitCount = 0;
+        const totalDigits = (formatted.match(/\d/g) || []).length;
+        this.value = formatted.replace(/\d/g, (match) => {
+          digitCount++;
+          return digitCount > totalDigits - 4 ? '•' : match;
+        });
       } else {
         this.value = formatted;
       }
