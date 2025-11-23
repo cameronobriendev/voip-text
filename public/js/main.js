@@ -143,17 +143,29 @@
     if (privacyBtn) {
       // Function to replace text with bullets
       function applyPrivacyMode() {
+        // Mask last names
         document.querySelectorAll('.blur-last-name').forEach(el => {
           if (!el.dataset.original) {
             el.dataset.original = el.textContent;
           }
           el.textContent = '•'.repeat(el.dataset.original.length);
         });
+
+        // Mask last 4 digits of phone numbers
+        document.querySelectorAll('.chat-header-phone, .contact-list-item-phone').forEach(el => {
+          if (!el.dataset.original) {
+            el.dataset.original = el.textContent;
+          }
+          const phone = el.dataset.original;
+          if (phone.length >= 4) {
+            el.textContent = phone.slice(0, -4) + '••••';
+          }
+        });
       }
 
       // Function to restore original text
       function removePrivacyMode() {
-        document.querySelectorAll('.blur-last-name').forEach(el => {
+        document.querySelectorAll('.blur-last-name, .chat-header-phone, .contact-list-item-phone').forEach(el => {
           if (el.dataset.original) {
             el.textContent = el.dataset.original;
           }
