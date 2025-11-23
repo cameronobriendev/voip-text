@@ -143,7 +143,7 @@
     if (privacyBtn) {
       // Function to replace text with bullets
       function applyPrivacyMode() {
-        // Mask last names
+        // Mask last names in all locations
         document.querySelectorAll('.blur-last-name').forEach(el => {
           if (!el.dataset.original) {
             el.dataset.original = el.textContent;
@@ -161,6 +161,38 @@
             el.textContent = phone.slice(0, -4) + '••••';
           }
         });
+
+        // Mask user's phone number in top left (last 4 digits)
+        const userNameEl = document.getElementById('userName');
+        if (userNameEl) {
+          if (!userNameEl.dataset.original) {
+            userNameEl.dataset.original = userNameEl.textContent;
+          }
+          const phone = userNameEl.dataset.original;
+          if (phone.length >= 4) {
+            userNameEl.textContent = phone.slice(0, -4) + '••••';
+          }
+        }
+
+        // Mask dialer contact selector options
+        const selector = document.getElementById('phoneContactSelector');
+        if (selector) {
+          Array.from(selector.options).forEach(option => {
+            if (option.value && !option.dataset.original) {
+              option.dataset.original = option.textContent;
+              // Format: "Name (phone)" -> mask last name and last 4 of phone
+              const text = option.textContent;
+              const match = text.match(/^(.+?) (.+?) \((.+)\)$/);
+              if (match) {
+                const firstName = match[1];
+                const lastName = '•'.repeat(match[2].length);
+                const phone = match[3];
+                const maskedPhone = phone.length >= 4 ? phone.slice(0, -4) + '••••' : phone;
+                option.textContent = `${firstName} ${lastName} (${maskedPhone})`;
+              }
+            }
+          });
+        }
       }
 
       // Function to restore original text
@@ -170,6 +202,22 @@
             el.textContent = el.dataset.original;
           }
         });
+
+        // Restore user's phone number
+        const userNameEl = document.getElementById('userName');
+        if (userNameEl && userNameEl.dataset.original) {
+          userNameEl.textContent = userNameEl.dataset.original;
+        }
+
+        // Restore dialer contact selector options
+        const selector = document.getElementById('phoneContactSelector');
+        if (selector) {
+          Array.from(selector.options).forEach(option => {
+            if (option.dataset.original) {
+              option.textContent = option.dataset.original;
+            }
+          });
+        }
       }
 
       // Restore saved privacy mode state
@@ -426,7 +474,7 @@
         } else {
           // For inbound, show contact name or phone number
           const name = currentContact.name || currentContact.phone_number;
-          label = `${name} • `;
+          label = `<span class="privacy-name">${formatNamePrivacy(name)}</span> • `;
         }
 
         const voicemailLink = msg.voicemail_blob_url
@@ -455,6 +503,11 @@
       }).join('');
 
       container.scrollTop = container.scrollHeight;
+
+      // Re-apply privacy mode if active
+      if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+        window.applyPrivacyMode();
+      }
     }
 
     // Mark unread inbound messages as read
@@ -732,6 +785,11 @@
           </div>
         </div>
       `).join('');
+
+      // Re-apply privacy mode if active
+      if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+        window.applyPrivacyMode();
+      }
     }
 
     // Select contact from modal
@@ -929,6 +987,11 @@
             </div>
           </div>
         `).join('');
+      }
+
+      // Re-apply privacy mode if active
+      if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+        window.applyPrivacyMode();
       }
     }
 
@@ -1575,6 +1638,11 @@
             option.textContent = `${name} (${formattedPhone})`;
             selector.appendChild(option);
           });
+
+          // Re-apply privacy mode if active
+          if (document.body.classList.contains('privacy-mode') && window.applyPrivacyMode) {
+            window.applyPrivacyMode();
+          }
         }
       } catch (error) {
         console.error('Failed to load contacts for dialer:', error);
