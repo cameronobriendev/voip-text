@@ -1406,6 +1406,17 @@
     // Format name with last name wrapped for privacy blur
     function formatNamePrivacy(name) {
       if (!name) return '';
+
+      // Check if it's a phone number (contact name is the phone number)
+      const digitsOnly = name.replace(/\D/g, '');
+      if (digitsOnly.length >= 7) {
+        // It's a phone number - wrap last 4 digits for blur
+        const escaped = escapeHtml(name);
+        // Find and wrap the last 4 digits
+        return escaped.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '<span class="blur-last-name">$1$2$3$4</span>$5');
+      }
+
+      // It's a real name
       const parts = name.trim().split(' ');
       if (parts.length === 1) {
         return escapeHtml(parts[0]);
