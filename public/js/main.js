@@ -1771,22 +1771,30 @@
     }
 
     // Handle keyboard input in dialer
-    document.getElementById('phoneDisplay').addEventListener('input', function(e) {
-      const display = e.target;
-      const digits = display.value.replace(/\D/g, '');
+    const phoneDisplayEl = document.getElementById('phoneDisplay');
+    let isFormattingDialer = false;
+
+    phoneDisplayEl.addEventListener('input', function(e) {
+      if (isFormattingDialer) return;
+      isFormattingDialer = true;
+
+      // Extract only digits from what user typed
+      const digits = this.value.replace(/[^\d]/g, '');
 
       // Store original digits
-      display.dataset.original = digits;
+      this.dataset.original = digits;
 
       // Format the display
       const formatted = formatPhoneDisplay(digits);
 
-      // Mask if privacy mode
+      // Mask if privacy mode - only last 4 digits
       if (document.body.classList.contains('privacy-mode') && digits.length >= 4) {
-        display.value = formatted.replace(/(\d)(\d)(\d)(\d)([^\d]*)$/, '••••$5');
+        this.value = formatted.replace(/\d(?=\d{0,3}$)/g, '•');
       } else {
-        display.value = formatted;
+        this.value = formatted;
       }
+
+      isFormattingDialer = false;
     });
 
     // Update call status
