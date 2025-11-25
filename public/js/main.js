@@ -491,10 +491,26 @@
         return;
       }
 
-      container.innerHTML = contactsList.map(conv => {
+      // Sort: unread messages first (read_at is null), then by created_at descending
+      const sorted = [...contactsList].sort((a, b) => {
+        // Unread messages first
+        const aUnread = !a.read_at;
+        const bUnread = !b.read_at;
+
+        if (aUnread && !bUnread) return -1;
+        if (!aUnread && bUnread) return 1;
+
+        // If both same read status, sort by created_at (newest first)
+        const aTime = new Date(a.created_at || 0).getTime();
+        const bTime = new Date(b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+
+      container.innerHTML = sorted.map(conv => {
         const time = conv.created_at ? new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const preview = conv.content ? (conv.content.length > 40 ? conv.content.substring(0, 40) + '...' : conv.content) : 'No messages yet';
         const name = conv.contact_name || conv.name || conv.phone_number;
+        const isUnread = !conv.read_at;
 
         return `
           <div class="conversation-item ${currentContact && currentContact.id === conv.contact_id ? 'active' : ''}"
@@ -505,10 +521,10 @@
             </div>
             <div class="conversation-details">
               <div class="conversation-header">
-                <span class="contact-name">${formatNamePrivacy(name)}</span>
+                <span class="contact-name" style="${isUnread ? 'font-weight: 700;' : ''}">${formatNamePrivacy(name)}</span>
                 ${time ? `<span class="message-time">${time}</span>` : ''}
               </div>
-              <div class="last-message">${escapeHtml(preview)}</div>
+              <div class="last-message" style="${isUnread ? 'font-weight: 600;' : ''}">${escapeHtml(preview)}</div>
             </div>
           </div>
         `;
