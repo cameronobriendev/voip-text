@@ -65,6 +65,16 @@ export default async function handler(
       console.log('Created new contact:', contact.id, contact.name);
     } else {
       contact = contacts[0];
+
+      // Auto-unarchive if this contact was archived
+      if (contact.is_archived) {
+        await sql`
+          UPDATE contacts
+          SET is_archived = FALSE
+          WHERE id = ${contact.id}
+        `;
+        console.log('Auto-unarchived contact:', contact.name);
+      }
     }
 
     // Store inbound SMS

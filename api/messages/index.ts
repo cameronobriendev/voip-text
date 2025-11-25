@@ -29,13 +29,14 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const sql = getDB();
 
-    // Check if we should show spam (default: false)
+    // Check URL parameters
     const url = new URL(req.url);
     const showSpam = url.searchParams.get('show_spam') === 'true';
+    const showArchived = url.searchParams.get('show_archived') === 'true';
 
     // Get all conversations with latest message
     // Group by contact_id and get the most recent message for each
-    // Filter out spam contacts unless explicitly requested
+    // Filter based on spam and archive status
     // Only include contacts that exist (c.id IS NOT NULL)
     const conversations = await sql`
       SELECT DISTINCT ON (m.contact_id)
@@ -51,11 +52,13 @@ export default async function handler(req: Request): Promise<Response> {
         c.phone_number,
         c.avatar_color,
         c.is_spam,
+        c.is_archived,
         c.ai_relationship,
         c.ai_tone_preference
       FROM messages m
       INNER JOIN contacts c ON m.contact_id = c.id
       WHERE ${showSpam ? sql`TRUE` : sql`(c.is_spam = FALSE OR c.is_spam IS NULL)`}
+        AND ${showArchived ? sql`(c.is_archived = TRUE)` : sql`(c.is_archived = FALSE OR c.is_archived IS NULL)`}
       ORDER BY m.contact_id, m.created_at DESC
     `;
 

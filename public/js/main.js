@@ -6,6 +6,7 @@
     let lastSeenMessageIds = new Set(); // Track message IDs we've already seen
     let pollingInterval = null;
     let currentContactsTab = 'contacts'; // Track which tab is active in contacts modal
+    let viewingArchive = false; // Track if we're viewing archive or messages
 
     // Toast notification system
     function showToast(message, type = 'success', duration = 4000) {
@@ -67,6 +68,109 @@
           progressBar.style.animationPlayState = 'running';
         }
       });
+    }
+
+    // Detect verification codes in message content
+    // Returns { hasCode: boolean, code: string | null }
+    function detectVerificationCode(messageContent) {
+      const content = messageContent.toLowerCase();
+
+      // Keywords that indicate a verification code (more lenient)
+      const keywords = [
+        'verification code', 'verify code', 'code is', 'your code', 'confirmation code',
+        'security code', 'otp', 'passcode', 'authentication code', 'login code',
+        'code:', 'code ', // Just "code" followed by space or colon
+      ];
+
+      const hasKeyword = keywords.some(keyword => content.includes(keyword));
+
+      // Words to exclude from being considered codes (case-insensitive)
+      const excludeWords = ['code', 'verification', 'confirm', 'security', 'your', 'the'];
+
+      // Extract alphanumeric codes between 4-8 characters
+      // Match patterns like: "123456", "ABC123", "12-34-56", "123 456"
+      const codePatterns = [
+        /\b([A-Z0-9]{4,8})\b/gi,           // Simple alphanumeric: ABC123
+        /\b(\d{4,8})\b/g,                  // Numeric only: 123456
+        /\b([A-Z0-9]{2,4}[-\s][A-Z0-9]{2,4})\b/gi  // With separators: 12-34 or AB CD
+      ];
+
+      for (const pattern of codePatterns) {
+        const matches = messageContent.match(pattern);
+        if (matches && matches.length > 0) {
+          // Try each match, skip excluded words
+          for (const match of matches) {
+            const extractedCode = match.replace(/[-\s]/g, '');
+            const isExcluded = excludeWords.some(word => extractedCode.toLowerCase() === word);
+
+            if (isExcluded) {
+              continue; // Skip this match, try next one
+            }
+
+            if (extractedCode.length >= 4 && extractedCode.length <= 8) {
+              // If we have a keyword match, definitely return it
+              if (hasKeyword) {
+                return { hasCode: true, code: extractedCode };
+              }
+
+              // Even without keyword, if the pattern looks like a verification code
+              // (mostly digits or starts with letter followed by digits), return it
+              const isNumeric = /^\d+$/.test(extractedCode);
+              const isCodePattern = /^[A-Z]\d+$/i.test(extractedCode); // Like A123456
+
+              if (isNumeric || isCodePattern) {
+                return { hasCode: true, code: extractedCode };
+              }
+            }
+          }
+        }
+      }
+
+      return { hasCode: false, code: null };
+    }
+
+    // Show persistent verification code toast with click-to-copy
+    function showVerificationCodeToast(contactName, verificationCode) {
+      console.log('showVerificationCodeToast called with:', { contactName, verificationCode });
+      const container = document.getElementById('toastContainer');
+
+      // Escape HTML for safe display
+      const safeContactName = escapeHtml(contactName);
+      const safeCode = escapeHtml(verificationCode);
+
+      const toast = document.createElement('div');
+      toast.className = 'toast info verification-code-toast';
+      toast.style.cursor = 'pointer';
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="toast-content">
+          <div class="toast-title">Verification Code from ${safeContactName}</div>
+          <div class="toast-message" style="font-size: 20px; font-weight: 600; letter-spacing: 2px; font-family: monospace;">${safeCode}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Click to copy</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+      // Click to copy code
+      toast.addEventListener('click', (e) => {
+        if (e.target.classList.contains('toast-close')) return;
+
+        navigator.clipboard.writeText(verificationCode).then(() => {
+          showToast(`Copied ${verificationCode} to clipboard`, 'success', 2000);
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          showToast('Failed to copy code', 'info', 2000);
+        });
+      });
+
+      container.appendChild(toast);
+
+      // No auto-dismiss - persistent until manually closed
     }
 
     // Check authentication
@@ -269,17 +373,21 @@
     async function loadConversations() {
       try {
         // Never show spam in conversations list
-        const response = await fetch('/api/messages');
+        // Show archived conversations if viewing archive
+        const url = viewingArchive ? '/api/messages?show_archived=true' : '/api/messages';
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success && data.conversations) {
           contacts = data.conversations;
           renderConversations(contacts);
         } else {
+          const emptyMessage = viewingArchive ? 'No archived conversations' : 'No conversations yet';
+          const emptySubtext = viewingArchive ? 'Archive conversations to see them here' : 'Click "New" to start messaging';
           document.getElementById('conversationsList').innerHTML = `
             <div class="empty-state">
-              <div class="empty-state-text">No conversations yet</div>
-              <div class="empty-state-subtext">Click "New" to start messaging</div>
+              <div class="empty-state-text">${emptyMessage}</div>
+              <div class="empty-state-subtext">${emptySubtext}</div>
             </div>
           `;
         }
@@ -292,6 +400,18 @@
         `;
       }
     }
+
+    // Toggle archive view
+    window.toggleArchiveView = function() {
+      viewingArchive = !viewingArchive;
+
+      // Update button text
+      const archiveBtn = document.getElementById('archiveBtn');
+      archiveBtn.textContent = viewingArchive ? 'Messages' : 'Archive';
+
+      // Reload conversations
+      loadConversations();
+    };
 
     // Render conversations list
     function renderConversations(contactsList) {
@@ -402,6 +522,11 @@
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
+            <button class="delete-conversation-btn" onclick="toggleArchiveFromChat()" title="${currentContact.is_archived ? 'Unarchive' : 'Archive'}" style="background: rgba(96, 165, 250, 0.2); border-color: rgba(96, 165, 250, 0.4);">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path>
+              </svg>
+            </button>
             <button class="delete-conversation-btn" onclick="toggleSpamFromChat()" title="Mark as Spam" style="background: rgba(255, 152, 0, 0.2); border-color: rgba(255, 152, 0, 0.4);">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -760,6 +885,11 @@
     // Contacts button - show manage contacts modal
     document.getElementById('contactsBtn').addEventListener('click', () => {
       showManageContactsModal();
+    });
+
+    // Archive button - toggle archive view
+    document.getElementById('archiveBtn').addEventListener('click', () => {
+      toggleArchiveView();
     });
 
     // Show contacts modal
@@ -1357,6 +1487,55 @@
       showMarkSpamModal(currentContact.id, currentContact.name);
     };
 
+    // Toggle archive from chat
+    window.toggleArchiveFromChat = async function() {
+      if (!currentContact) return;
+
+      const contactId = currentContact.id;
+      const contactName = currentContact.name;
+      const isCurrentlyArchived = currentContact.is_archived || false;
+      const willBeArchived = !isCurrentlyArchived;
+
+      try {
+        const response = await fetchWithCsrf(`/api/contacts/${contactId}/archive`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_archived: willBeArchived }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast(willBeArchived ? `${contactName} archived` : `${contactName} unarchived`);
+
+          // Update current contact
+          currentContact.is_archived = willBeArchived;
+
+          // Reload conversations
+          await loadConversations();
+
+          // Close chat area if archived and not viewing archive
+          if (willBeArchived && !viewingArchive) {
+            document.getElementById('chatArea').innerHTML = `
+              <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <div class="empty-state-text">Select a conversation</div>
+                <div class="empty-state-subtext">Choose a contact to start messaging</div>
+              </div>
+            `;
+            currentContact = null;
+          }
+        } else {
+          showToast(`Failed to ${willBeArchived ? 'archive' : 'unarchive'} conversation`, 'info');
+        }
+      } catch (error) {
+        console.error('Archive error:', error);
+        showToast(`Failed to ${willBeArchived ? 'archive' : 'unarchive'} conversation`, 'info');
+      }
+    };
+
     // Delete note functions
     let pendingDeleteNoteId = null;
 
@@ -1491,8 +1670,17 @@
           newMessages.forEach(conv => {
             if (conv.direction === 'inbound') {
               const name = conv.contact_name || conv.phone_number;
-              const preview = conv.content.length > 50 ? conv.content.substring(0, 50) + '...' : conv.content;
-              showToast(`${name}: ${preview}`, 'info', 6000);
+
+              // Check for verification code
+              const codeCheck = detectVerificationCode(conv.content);
+              if (codeCheck.hasCode && codeCheck.code) {
+                // Show persistent verification code toast
+                showVerificationCodeToast(name, codeCheck.code);
+              } else {
+                // Show regular message toast
+                const preview = conv.content.length > 50 ? conv.content.substring(0, 50) + '...' : conv.content;
+                showToast(`${name}: ${preview}`, 'info', 6000);
+              }
             }
           });
 

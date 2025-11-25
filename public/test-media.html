@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BirdText - Media Permission Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-box {
+            background: #2a2a2a;
+            border: 2px solid #3a3a3a;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .success {
+            background: #064e3b;
+            color: #6ee7b7;
+            border: 2px solid #10b981;
+        }
+        .error {
+            background: #7f1d1d;
+            color: #fca5a5;
+            border: 2px solid #ef4444;
+        }
+        .warning {
+            background: #78350f;
+            color: #fcd34d;
+            border: 2px solid #f59e0b;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #0a0a0a;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        h1 {
+            color: #60a5fa;
+        }
+        h2 {
+            color: #93c5fd;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 BirdText Media Permission Test</h1>
+
+    <div class="test-box">
+        <h2>Step 1: Check Browser Support</h2>
+        <div id="browserSupport"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 2: Check Media Devices</h2>
+        <button onclick="checkDevices()">Check Available Devices</button>
+        <div id="deviceList"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 3: Request Microphone Permission</h2>
+        <button onclick="requestMicPermission()">Request Microphone Access</button>
+        <div id="micPermission"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 4: Test Audio Stream</h2>
+        <button onclick="testAudioStream()">Test Audio Stream</button>
+        <button onclick="stopAudioStream()">Stop Stream</button>
+        <div id="audioStream"></div>
+        <audio id="testAudio" autoplay style="display:none"></audio>
+    </div>
+
+    <div class="test-box">
+        <h2>Permission State</h2>
+        <button onclick="checkPermissionState()">Check Current State</button>
+        <div id="permissionState"></div>
+    </div>
+
+    <script>
+        let currentStream = null;
+
+        // Check browser support
+        function checkBrowserSupport() {
+            const results = [];
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                results.push({ status: 'success', msg: '✅ getUserMedia is supported' });
+            } else {
+                results.push({ status: 'error', msg: '❌ getUserMedia is NOT supported' });
+            }
+
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                results.push({ status: 'success', msg: '✅ Device enumeration is supported' });
+            } else {
+                results.push({ status: 'error', msg: '❌ Device enumeration is NOT supported' });
+            }
+
+            if (window.RTCPeerConnection) {
+                results.push({ status: 'success', msg: '✅ WebRTC is supported' });
+            } else {
+                results.push({ status: 'error', msg: '❌ WebRTC is NOT supported' });
+            }
+
+            const html = results.map(r =>
+                `<div class="status ${r.status}">${r.msg}</div>`
+            ).join('');
+
+            document.getElementById('browserSupport').innerHTML = html;
+        }
+
+        // Check available devices
+        async function checkDevices() {
+            const output = document.getElementById('deviceList');
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+                if (audioInputs.length === 0) {
+                    output.innerHTML = '<div class="status error">❌ No microphones found!</div>';
+                    return;
+                }
+
+                let html = `<div class="status success">✅ Found ${audioInputs.length} microphone(s)</div>`;
+                html += '<pre>';
+                audioInputs.forEach((device, i) => {
+                    html += `${i + 1}. ${device.label || 'Microphone ' + (i + 1)}\n`;
+                    html += `   ID: ${device.deviceId}\n`;
+                    html += `   Group: ${device.groupId}\n\n`;
+                });
+                html += '</pre>';
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+                console.error('Device enumeration error:', error);
+            }
+        }
+
+        // Request microphone permission
+        async function requestMicPermission() {
+            const output = document.getElementById('micPermission');
+            try {
+                output.innerHTML = '<div class="status warning">🔄 Requesting permission...</div>';
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                output.innerHTML = '<div class="status success">✅ Microphone permission GRANTED!</div>';
+
+                // Stop the stream immediately (we just wanted permission)
+                stream.getTracks().forEach(track => track.stop());
+
+                // Show devices now that we have permission
+                await checkDevices();
+
+            } catch (error) {
+                let errorMsg = '';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '❌ Permission DENIED by user';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '❌ No microphone found';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '❌ Microphone is already in use';
+                } else {
+                    errorMsg = `❌ Error: ${error.name} - ${error.message}`;
+                }
+
+                output.innerHTML = `<div class="status error">${errorMsg}</div>`;
+                console.error('getUserMedia error:', error);
+            }
+        }
+
+        // Test audio stream
+        async function testAudioStream() {
+            const output = document.getElementById('audioStream');
+            try {
+                output.innerHTML = '<div class="status warning">🔄 Starting audio stream...</div>';
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                currentStream = stream;
+
+                // Display stream info
+                const tracks = stream.getAudioTracks();
+                let html = '<div class="status success">✅ Audio stream active!</div>';
+                html += '<pre>';
+                tracks.forEach(track => {
+                    html += `Track: ${track.label}\n`;
+                    html += `  State: ${track.readyState}\n`;
+                    html += `  Enabled: ${track.enabled}\n`;
+                    html += `  Muted: ${track.muted}\n`;
+                    const settings = track.getSettings();
+                    html += `  Sample Rate: ${settings.sampleRate}Hz\n`;
+                    html += `  Channel Count: ${settings.channelCount}\n`;
+                });
+                html += '</pre>';
+
+                output.innerHTML = html;
+
+            } catch (error) {
+                output.innerHTML = `<div class="status error">❌ Error: ${error.name} - ${error.message}</div>`;
+                console.error('Audio stream error:', error);
+            }
+        }
+
+        // Stop audio stream
+        function stopAudioStream() {
+            const output = document.getElementById('audioStream');
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+                output.innerHTML = '<div class="status success">✅ Stream stopped</div>';
+            } else {
+                output.innerHTML = '<div class="status warning">⚠️ No active stream</div>';
+            }
+        }
+
+        // Check permission state
+        async function checkPermissionState() {
+            const output = document.getElementById('permissionState');
+            try {
+                const result = await navigator.permissions.query({ name: 'microphone' });
+
+                let html = '';
+                if (result.state === 'granted') {
+                    html = '<div class="status success">✅ Microphone permission: GRANTED</div>';
+                } else if (result.state === 'prompt') {
+                    html = '<div class="status warning">⚠️ Microphone permission: NOT YET REQUESTED</div>';
+                } else if (result.state === 'denied') {
+                    html = '<div class="status error">❌ Microphone permission: DENIED</div>';
+                    html += '<div class="status warning">To fix: Click the lock icon in the address bar → Site settings → Microphone → Allow</div>';
+                }
+
+                html += `<pre>State: ${result.state}</pre>`;
+
+                output.innerHTML = html;
+
+                // Listen for changes
+                result.onchange = () => {
+                    checkPermissionState();
+                };
+
+            } catch (error) {
+                output.innerHTML = `<div class="status error">❌ Cannot check permissions: ${error.message}</div>`;
+            }
+        }
+
+        // Run browser check on load
+        window.addEventListener('load', () => {
+            checkBrowserSupport();
+            checkPermissionState();
+        });
+    </script>
+</body>
+</html>

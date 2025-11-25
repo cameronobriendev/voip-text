@@ -46,13 +46,44 @@ Toggle to mask names and phone numbers for screen sharing or demos. Persists acr
 
 ---
 
+### Message Archive
+
+Archive conversations to keep your inbox clean. Archived conversations are hidden from the main view but automatically reappear when you receive a new message.
+
+**How to use:**
+- Click the **Archive** button to view archived conversations
+- Click the archive icon (📦) in any conversation to archive/unarchive it
+- New messages automatically unarchive conversations
+
+---
+
+### Verification Code Detection
+
+Automatically detects verification codes in incoming messages and shows a persistent toast with click-to-copy functionality.
+
+**Features:**
+- Detects keywords: "verification code", "your code", "OTP", "passcode", etc.
+- Extracts 4-8 character alphanumeric codes
+- Shows large, easy-to-read code display
+- Click anywhere on the toast to copy to clipboard
+- Persistent until manually dismissed (no auto-dismiss)
+
+**Supported formats:**
+- Numeric: `123456`
+- Alphanumeric: `ABC123`
+- With separators: `12-34-56` or `123 456`
+
+---
+
 ### Additional Features
 
+- **Message Archive** - Archive conversations to declutter your inbox; new messages auto-unarchive
+- **Verification Code Detection** - Automatic detection and persistent click-to-copy toasts for verification codes
 - **Contact Management** - Create, edit, delete contacts with notes and AI preferences
 - **Spam Filtering** - Mark contacts as spam, view spam list, restore
 - **Unread Indicators** - Visual indicators for new messages
 - **Message Search** - Filter conversations by name or number
-- **Click-to-Copy** - Copy phone numbers with one click
+- **Click-to-Copy** - Copy phone numbers and verification codes with one click
 - **Responsive Toasts** - Notifications for all actions
 
 ---
@@ -163,6 +194,7 @@ psql $DATABASE_URL -f migrations/003_add_call_support.sql
 psql $DATABASE_URL -f migrations/004_add_spam_support.sql
 psql $DATABASE_URL -f migrations/005_add_ai_preferences.sql
 psql $DATABASE_URL -f migrations/006_add_brute_force_protection.sql
+psql $DATABASE_URL -f migrations/007_add_archive_support.sql
 ```
 
 5. Deploy to Vercel
