@@ -162,6 +162,10 @@
 
         navigator.clipboard.writeText(verificationCode).then(() => {
           showToast(`Copied ${verificationCode} to clipboard`, 'success', 2000);
+
+          // Start dismiss animation after copying
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 300);
         }).catch(err => {
           console.error('Failed to copy:', err);
           showToast('Failed to copy code', 'info', 2000);
@@ -170,7 +174,7 @@
 
       container.appendChild(toast);
 
-      // No auto-dismiss - persistent until manually closed
+      // No auto-dismiss - persistent until manually closed (or clicked to copy)
     }
 
     // Check authentication
