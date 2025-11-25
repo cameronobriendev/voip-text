@@ -166,11 +166,38 @@
       const duration = 4000;
       const progressBar = toast.querySelector('.toast-progress');
       let isActive = false; // Track if countdown has started
+      let isHovering = false; // Track hover state
 
       // Pause animation initially
       if (progressBar) {
         progressBar.style.animationPlayState = 'paused';
       }
+
+      // Track hover state
+      toast.addEventListener('mouseenter', () => {
+        isHovering = true;
+        if (!isActive) return;
+
+        clearTimeout(timeoutId);
+        remainingTime -= (Date.now() - startTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'paused';
+        }
+      });
+
+      toast.addEventListener('mouseleave', () => {
+        isHovering = false;
+        if (!isActive) return;
+
+        startTime = Date.now();
+        timeoutId = setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 300);
+        }, remainingTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'running';
+        }
+      });
 
       // Click to copy code
       toast.addEventListener('click', (e) => {
@@ -185,45 +212,28 @@
             startTime = Date.now();
             remainingTime = duration;
 
-            // Resume animation and start dismiss timeout
-            if (progressBar) {
-              progressBar.style.animationPlayState = 'running';
-            }
+            // If user is hovering, keep animation paused and don't start timeout
+            if (isHovering) {
+              if (progressBar) {
+                progressBar.style.animationPlayState = 'paused';
+              }
+              // Don't start timeout - it will start when they unhover
+            } else {
+              // Start animation and timeout
+              if (progressBar) {
+                progressBar.style.animationPlayState = 'running';
+              }
 
-            timeoutId = setTimeout(() => {
-              toast.classList.add('hiding');
-              setTimeout(() => toast.remove(), 300);
-            }, duration);
+              timeoutId = setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+              }, duration);
+            }
           }
         }).catch(err => {
           console.error('Failed to copy:', err);
           showToast('Failed to copy code', 'info', 2000);
         });
-      });
-
-      // Pause on hover (only if countdown is active)
-      toast.addEventListener('mouseenter', () => {
-        if (!isActive) return;
-
-        clearTimeout(timeoutId);
-        remainingTime -= (Date.now() - startTime);
-        if (progressBar) {
-          progressBar.style.animationPlayState = 'paused';
-        }
-      });
-
-      // Resume on mouse leave (only if countdown is active)
-      toast.addEventListener('mouseleave', () => {
-        if (!isActive) return;
-
-        startTime = Date.now();
-        timeoutId = setTimeout(() => {
-          toast.classList.add('hiding');
-          setTimeout(() => toast.remove(), 300);
-        }, remainingTime);
-        if (progressBar) {
-          progressBar.style.animationPlayState = 'running';
-        }
       });
     }
 
