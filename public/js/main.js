@@ -161,8 +161,11 @@
 
       // Set up auto-dismiss system (paused until click-to-copy)
       let timeoutId = null;
+      let startTime = null;
+      let remainingTime = 4000;
       const duration = 4000;
       const progressBar = toast.querySelector('.toast-progress');
+      let isActive = false; // Track if countdown has started
 
       // Pause animation initially
       if (progressBar) {
@@ -176,19 +179,51 @@
         navigator.clipboard.writeText(verificationCode).then(() => {
           showToast(`Copied ${verificationCode} to clipboard`, 'success', 2000);
 
-          // Resume animation and start dismiss timeout
-          if (progressBar) {
-            progressBar.style.animationPlayState = 'running';
-          }
+          // Start the countdown if not already active
+          if (!isActive) {
+            isActive = true;
+            startTime = Date.now();
+            remainingTime = duration;
 
-          timeoutId = setTimeout(() => {
-            toast.classList.add('hiding');
-            setTimeout(() => toast.remove(), 300);
-          }, duration);
+            // Resume animation and start dismiss timeout
+            if (progressBar) {
+              progressBar.style.animationPlayState = 'running';
+            }
+
+            timeoutId = setTimeout(() => {
+              toast.classList.add('hiding');
+              setTimeout(() => toast.remove(), 300);
+            }, duration);
+          }
         }).catch(err => {
           console.error('Failed to copy:', err);
           showToast('Failed to copy code', 'info', 2000);
         });
+      });
+
+      // Pause on hover (only if countdown is active)
+      toast.addEventListener('mouseenter', () => {
+        if (!isActive) return;
+
+        clearTimeout(timeoutId);
+        remainingTime -= (Date.now() - startTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'paused';
+        }
+      });
+
+      // Resume on mouse leave (only if countdown is active)
+      toast.addEventListener('mouseleave', () => {
+        if (!isActive) return;
+
+        startTime = Date.now();
+        timeoutId = setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 300);
+        }, remainingTime);
+        if (progressBar) {
+          progressBar.style.animationPlayState = 'running';
+        }
       });
     }
 
