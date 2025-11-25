@@ -154,7 +154,20 @@
           <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Click to copy</div>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        <div class="toast-progress"></div>
       `;
+
+      container.appendChild(toast);
+
+      // Set up auto-dismiss system (paused until click-to-copy)
+      let timeoutId = null;
+      const duration = 4000;
+      const progressBar = toast.querySelector('.toast-progress');
+
+      // Pause animation initially
+      if (progressBar) {
+        progressBar.style.animationPlayState = 'paused';
+      }
 
       // Click to copy code
       toast.addEventListener('click', (e) => {
@@ -163,18 +176,20 @@
         navigator.clipboard.writeText(verificationCode).then(() => {
           showToast(`Copied ${verificationCode} to clipboard`, 'success', 2000);
 
-          // Start dismiss animation after copying
-          toast.classList.add('hiding');
-          setTimeout(() => toast.remove(), 300);
+          // Resume animation and start dismiss timeout
+          if (progressBar) {
+            progressBar.style.animationPlayState = 'running';
+          }
+
+          timeoutId = setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+          }, duration);
         }).catch(err => {
           console.error('Failed to copy:', err);
           showToast('Failed to copy code', 'info', 2000);
         });
       });
-
-      container.appendChild(toast);
-
-      // No auto-dismiss - persistent until manually closed (or clicked to copy)
     }
 
     // Check authentication
