@@ -81,11 +81,51 @@ Toggle to mask names and phone numbers for screen sharing or demos. Persists acr
 
 ## Security
 
+### Application Security
+
 - PBKDF2 password hashing (100,000 iterations)
 - JWT session tokens
 - CSRF protection on all state-changing endpoints
 - Brute-force login protection
 - Security headers (CSP, HSTS, X-Frame-Options)
+
+### FreeSWITCH Security (CRITICAL)
+
+**⚠️ VoIP systems are high-value targets for attackers.** Compromised SIP servers can be used to make expensive international calls, resulting in thousands of dollars in charges.
+
+**Required Security Measures**:
+
+1. **Firewall Configuration (MANDATORY)**
+   - **NEVER** expose SIP ports (5060, 5080) to the entire internet
+   - Use IP-based firewall rules to restrict access to your VoIP provider's IPs only
+   - Example using UFW:
+     ```bash
+     # Block general access
+     ufw default deny incoming
+
+     # Allow ONLY your VoIP provider's IPs
+     ufw allow from <VOIP_PROVIDER_IP> to any port 5060 proto udp
+     ufw allow from <VOIP_PROVIDER_IP> to any port 5080 proto tcp
+     ufw allow from <VOIP_PROVIDER_IP> to any port 16384:32768 proto udp
+     ```
+
+2. **Strong Authentication**
+   - Use cryptographically strong passwords (20+ characters, random)
+   - **NEVER** use default FreeSWITCH extension passwords (1000-1019 with password "1234")
+   - Disable all unused extensions
+
+3. **Intrusion Prevention**
+   - Install and configure fail2ban for FreeSWITCH
+   - Automatically ban IPs after failed authentication attempts
+   - Monitor logs for suspicious activity
+
+4. **Defense in Depth**
+   - Firewall restrictions (primary defense)
+   - Strong passwords (authentication layer)
+   - fail2ban (automated response)
+   - Regular log monitoring
+
+**November 2025 Security Note**: This project's FreeSWITCH server was compromised due to open SIP ports and default extension passwords. Attackers made 2,825 unauthorized call attempts before the breach was detected and remediated. Comprehensive security hardening was implemented (see `SECURITY_LOG.md` for details). Don't let this happen to you—secure your FreeSWITCH server BEFORE deploying to production.
 
 ---
 
