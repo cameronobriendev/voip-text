@@ -79,12 +79,12 @@ Automatically detects verification codes in incoming messages and shows a persis
 
 - **Message Archive** - Archive conversations to declutter your inbox; new messages auto-unarchive
 - **Verification Code Detection** - Automatic detection and persistent click-to-copy toasts for verification codes
+- **Unread Priority** - Unread conversations automatically sort to the top with bold styling for easy visibility
 - **Contact Management** - Create, edit, delete contacts with notes and AI preferences
 - **Spam Filtering** - Mark contacts as spam, view spam list, restore
-- **Unread Indicators** - Visual indicators for new messages
 - **Message Search** - Filter conversations by name or number
 - **Click-to-Copy** - Copy phone numbers and verification codes with one click
-- **Responsive Toasts** - Notifications for all actions
+- **Responsive Toasts** - Notifications for all actions with hover-to-pause
 
 ---
 
