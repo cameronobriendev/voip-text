@@ -507,7 +507,7 @@
       });
 
       container.innerHTML = sorted.map(conv => {
-        const time = conv.created_at ? new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const time = conv.created_at ? formatTimestamp(conv.created_at) : '';
         const preview = conv.content ? (conv.content.length > 40 ? conv.content.substring(0, 40) + '...' : conv.content) : 'No messages yet';
         const name = conv.contact_name || conv.name || conv.phone_number;
         const isUnread = !conv.read_at;
@@ -690,7 +690,7 @@
       }
 
       container.innerHTML = messages.map(msg => {
-        const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = formatTimestamp(msg.created_at);
         let label = '';
 
         // Handle different message types
@@ -1684,6 +1684,33 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Format timestamp with smart date display
+    function formatTimestamp(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+      const daysDiff = Math.floor((today - messageDate) / (1000 * 60 * 60 * 24));
+      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (daysDiff === 0) {
+        // Today - just show time
+        return time;
+      } else if (daysDiff === 1) {
+        // Yesterday
+        return `Yesterday ${time}`;
+      } else if (daysDiff < 7) {
+        // This week - show day name
+        const dayName = date.toLocaleDateString([], { weekday: 'short' });
+        return `${dayName} ${time}`;
+      } else {
+        // Older - show date
+        const monthDay = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return `${monthDay} ${time}`;
+      }
     }
 
     // Format name with last name wrapped for privacy blur
