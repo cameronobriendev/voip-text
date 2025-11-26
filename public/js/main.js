@@ -491,16 +491,8 @@
         return;
       }
 
-      // Sort: unread messages first (read_at is null), then by created_at descending
+      // Sort: by created_at descending (newest first), regardless of read status
       const sorted = [...contactsList].sort((a, b) => {
-        // Unread messages first
-        const aUnread = !a.read_at;
-        const bUnread = !b.read_at;
-
-        if (aUnread && !bUnread) return -1;
-        if (!aUnread && bUnread) return 1;
-
-        // If both same read status, sort by created_at (newest first)
         const aTime = new Date(a.created_at || 0).getTime();
         const bTime = new Date(b.created_at || 0).getTime();
         return bTime - aTime;
