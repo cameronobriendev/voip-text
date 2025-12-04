@@ -1,4 +1,5 @@
 import { put } from '@vercel/blob';
+import { createClient } from '@deepgram/sdk';
 import { getDB } from '../db/client.js';
 import { formatPhoneE164, displayPhoneNumber, generateAvatarColor } from '../../utils/phone.js';
 
@@ -277,43 +278,52 @@ export default async function handler(req, res) {
         const newMessage = messages[0];
         console.log(`[Voicemail Sync] Stored voicemail ${message_num} with placeholder text`);
 
-        // Now transcribe with OpenAI Whisper API (runs after message is stored)
-        console.log(`[Voicemail Sync] Starting transcription for message ${message_num}...`);
+        // Now transcribe with Deepgram API (runs after message is stored)
+        console.log(`[Voicemail Sync] Starting Deepgram transcription for message ${message_num}...`);
         let transcription = 'Listen to Voicemail 👇'; // fallback
         let confidence = null;
 
         try {
-          // Use native FormData (matches Tracker implementation)
-          const formData = new FormData();
+          const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
+          if (!deepgramApiKey) {
+            console.error(`[Voicemail Sync] DEEPGRAM_API_KEY not found in environment`);
+            throw new Error('DEEPGRAM_API_KEY not configured');
+          }
 
-          // Create a blob from the audio buffer (like Tracker does)
-          const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
-          formData.append('file', blob, 'voicemail.mp3');
-          formData.append('model', 'whisper-1');
-          formData.append('response_format', 'text');
+          // Initialize Deepgram client
+          const deepgram = createClient(deepgramApiKey);
 
-          // Call OpenAI Whisper API (no .getHeaders() needed with native FormData)
-          const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-            },
-            body: formData
-          });
+          // Transcribe audio buffer directly
+          console.log(`[Voicemail Sync] Sending ${audioBuffer.length} bytes to Deepgram...`);
+          const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+            audioBuffer,
+            {
+              model: 'nova-2',        // Best for telephony audio
+              smart_format: true,     // Auto-format with punctuation
+              punctuate: true,
+              language: 'en-US',
+              utterances: false
+            }
+          );
 
-          if (whisperResponse.ok) {
-            transcription = await whisperResponse.text();
+          if (error) {
+            console.error(`[Voicemail Sync] Deepgram API error:`, error);
+          } else if (result?.results?.channels?.[0]?.alternatives?.[0]) {
+            const alternative = result.results.channels[0].alternatives[0];
+            transcription = alternative.transcript;
+            confidence = alternative.confidence ? (alternative.confidence * 100).toFixed(1) : null;
+
             if (transcription && transcription.trim()) {
-              console.log(`[Voicemail Sync] Transcription complete (${transcription.length} chars)`);
+              console.log(`[Voicemail Sync] Deepgram transcription complete (${transcription.length} chars, confidence: ${confidence}%)`);
             } else {
               transcription = 'Listen to Voicemail 👇';
+              console.log(`[Voicemail Sync] Deepgram returned empty transcript`);
             }
           } else {
-            const error = await whisperResponse.text();
-            console.error(`[Voicemail Sync] Whisper API error: ${error}`);
+            console.error(`[Voicemail Sync] Deepgram returned unexpected response structure`);
           }
         } catch (error) {
-          console.error(`[Voicemail Sync] Transcription error:`, error.message);
+          console.error(`[Voicemail Sync] Deepgram transcription error:`, error.message);
         }
 
         // Update message with actual transcription
