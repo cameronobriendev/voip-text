@@ -302,7 +302,8 @@ export default async function handler(req, res) {
               smart_format: true,     // Auto-format with punctuation
               punctuate: true,
               language: 'en-US',
-              utterances: false
+              utterances: false,
+              keywords: ['Kacy:2']    // Boost recognition of "Kacy" (weight: 2)
             }
           );
 
@@ -314,6 +315,12 @@ export default async function handler(req, res) {
             confidence = alternative.confidence ? (alternative.confidence * 100).toFixed(1) : null;
 
             if (transcription && transcription.trim()) {
+              // Post-processing: Fix common name misspellings
+              transcription = transcription
+                .replace(/\bCasey\b/gi, 'Kacy')   // Casey → Kacy (case-insensitive)
+                .replace(/\bCasie\b/gi, 'Kacy')   // Casie → Kacy
+                .replace(/\bKacie\b/gi, 'Kacy');  // Kacie → Kacy
+
               console.log(`[Voicemail Sync] Deepgram transcription complete (${transcription.length} chars, confidence: ${confidence}%)`);
             } else {
               transcription = 'Listen to Voicemail 👇';
