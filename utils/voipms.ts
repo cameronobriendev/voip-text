@@ -38,14 +38,14 @@ export async function sendSMS(
     message: message,
   });
 
-  const url = `https://voip.ms/api/v1/rest.php?${params.toString()}`;
-
   try {
-    const response = await fetch(url, {
-      method: 'GET',
+    const response = await fetch('https://voip.ms/api/v1/rest.php', {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
       },
+      body: params.toString(),
     });
 
     if (!response.ok) {
