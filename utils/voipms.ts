@@ -29,12 +29,15 @@ export async function sendSMS(
     throw new Error('VoIP.ms credentials not configured in environment variables');
   }
 
+  // Format phone number for voip.ms (10 digits, no formatting)
+  const formattedPhone = formatPhoneForVoipMs(to);
+
   const params = new URLSearchParams({
     api_username: credentials.email,
     api_password: credentials.apiPassword,
     method: 'sendSMS',
     did: credentials.did,
-    dst: to,
+    dst: formattedPhone,
     message: message,
   });
 
@@ -107,4 +110,26 @@ export function displayPhoneNumber(phone: string): string {
 
   // Just return original for international numbers
   return phone;
+}
+
+/**
+ * Format phone number for voip.ms API (10 digits, no formatting)
+ * voip.ms expects NANPA format: just 10 digits like 2125551234
+ */
+export function formatPhoneForVoipMs(phone: string): string {
+  // Strip all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+
+  // If 11 digits starting with 1, remove the 1 (North America country code)
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return digits.slice(1);
+  }
+
+  // If 10 digits, return as-is
+  if (digits.length === 10) {
+    return digits;
+  }
+
+  // If other length, return stripped digits (voip.ms will validate)
+  return digits;
 }
