@@ -51,23 +51,36 @@ export async function sendSMS(
       body: params.toString(),
     });
 
-    if (!response.ok) {
-      throw new Error(`voip.ms API request failed: ${response.status} ${response.statusText}`);
+    // ALWAYS read response body first - voip.ms returns error details in JSON even with 500 status
+    const responseText = await response.text();
+    console.log('[voipms] API Response Status:', response.status);
+    console.log('[voipms] API Response Body:', responseText);
+
+    // Parse JSON response
+    let data: VoipMsResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[voipms] Failed to parse response as JSON:', responseText);
+      throw new Error(`voip.ms API returned non-JSON response (${response.status}): ${responseText.slice(0, 200)}`);
     }
 
-    const data: VoipMsResponse = await response.json();
-
+    // Check voip.ms status field (they use their own status, not HTTP status)
     if (data.status !== 'success') {
-      throw new Error(`voip.ms API error: ${data.error || data.status}`);
+      const errorMsg = data.error || data.status || 'Unknown error';
+      console.error('[voipms] API returned error status:', data);
+      throw new Error(`voip.ms API error: ${errorMsg}`);
     }
 
     if (!data.sms) {
+      console.error('[voipms] No message ID in response:', data);
       throw new Error('voip.ms API did not return message ID');
     }
 
+    console.log('[voipms] SMS sent successfully, message ID:', data.sms);
     return data.sms; // Return message ID for tracking
   } catch (error) {
-    console.error('sendSMS error:', error);
+    console.error('[voipms] sendSMS error:', error);
     throw error;
   }
 }
