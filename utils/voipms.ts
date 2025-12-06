@@ -1,4 +1,4 @@
-// voip.ms API client for sending SMS
+// voip.ms API client for sending SMS/MMS
 interface VoipMsCredentials {
   email: string;
   apiPassword: string;
@@ -6,13 +6,16 @@ interface VoipMsCredentials {
 }
 
 interface VoipMsResponse {
-  status: 'success' | 'failure' | 'no_credits';
-  sms?: string; // Message ID
+  status: 'success' | 'failure' | 'no_credits' | 'sms_toolong';
+  sms?: string; // Message ID (for SMS)
+  mms?: string; // Message ID (for MMS)
   error?: string;
+  message?: string;
 }
 
 /**
- * Send SMS via voip.ms API
+ * Send SMS/MMS via voip.ms API
+ * Automatically uses MMS for messages >160 characters
  * @returns Message ID from voip.ms
  */
 export async function sendSMS(
@@ -32,10 +35,23 @@ export async function sendSMS(
   // Format phone number for voip.ms (10 digits, no formatting)
   const formattedPhone = formatPhoneForVoipMs(to);
 
+  // Choose method based on message length
+  // SMS: max 160 chars, $0.0075/msg
+  // MMS: max 2048 chars, $0.02/msg (cheaper for 3+ SMS segments)
+  const method = message.length <= 160 ? 'sendSMS' : 'sendMMS';
+  const maxChars = method === 'sendSMS' ? 160 : 2048;
+
+  // Validate message length
+  if (message.length > maxChars) {
+    throw new Error(`Message too long: ${message.length} characters (max ${maxChars} for ${method})`);
+  }
+
+  console.log(`[voipms] Sending via ${method} (${message.length} chars, max ${maxChars})`);
+
   const params = new URLSearchParams({
     api_username: credentials.email,
     api_password: credentials.apiPassword,
-    method: 'sendSMS',
+    method: method,
     did: credentials.did,
     dst: formattedPhone,
     message: message,
@@ -64,18 +80,20 @@ export async function sendSMS(
 
     // Check voip.ms status field (they use their own status, not HTTP status)
     if (data.status !== 'success') {
-      const errorMsg = data.error || data.status || 'Unknown error';
+      const errorMsg = data.error || data.message || data.status || 'Unknown error';
       console.error('[voipms] API returned error status:', data);
       throw new Error(`voip.ms API error: ${errorMsg}`);
     }
 
-    if (!data.sms) {
+    // Handle both SMS and MMS responses
+    const messageId = data.sms || data.mms;
+    if (!messageId) {
       console.error('[voipms] No message ID in response:', data);
       throw new Error('voip.ms API did not return message ID');
     }
 
-    console.log('[voipms] SMS sent successfully, message ID:', data.sms);
-    return data.sms; // Return message ID for tracking
+    console.log(`[voipms] ${method} sent successfully, message ID:`, messageId);
+    return messageId; // Return message ID for tracking
   } catch (error) {
     console.error('[voipms] sendSMS error:', error);
     throw error;
