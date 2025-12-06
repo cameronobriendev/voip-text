@@ -42,13 +42,10 @@ export async function sendSMS(
   });
 
   try {
-    const response = await fetch('https://voip.ms/api/v1/rest.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      body: params.toString(),
+    // voip.ms REST API requires GET requests with query string parameters
+    const url = `https://voip.ms/api/v1/rest.php?${params.toString()}`;
+    const response = await fetch(url, {
+      method: 'GET',
     });
 
     // ALWAYS read response body first - voip.ms returns error details in JSON even with 500 status
