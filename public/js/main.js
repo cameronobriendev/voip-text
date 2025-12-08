@@ -1319,6 +1319,12 @@
         const data = await response.json();
 
         if (data.success) {
+          // Update local contacts array
+          const contactIndex = contacts.findIndex(c => c.id === contactId);
+          if (contactIndex !== -1) {
+            contacts[contactIndex] = { ...contacts[contactIndex], name, phone_number: phone };
+          }
+
           // If editing from chat, update currentContact and reload messages
           if (editContactOpenedFrom === 'chat' && currentContact && currentContact.id === contactId) {
             currentContact.name = name;
@@ -1326,8 +1332,19 @@
             await loadMessages(contactId); // Reload to update header
           }
 
-          closeEditContactModal();
+          // Close edit modal without reopening contacts modal
+          document.getElementById('editContactModal').classList.remove('show');
+          document.getElementById('editContactForm').reset();
+          contactToEdit = null;
+
+          // Reload conversations
           await loadConversations();
+
+          // If we came from the contacts modal, refresh and reopen it
+          if (editContactOpenedFrom === 'contacts') {
+            await showManageContactsModal();
+          }
+
           showToast(`Contact "${name}" updated successfully!`, 'success');
         } else {
           showToast('Failed to update contact: ' + (data.error || 'Unknown error'), 'info');
