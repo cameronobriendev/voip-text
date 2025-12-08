@@ -1252,6 +1252,7 @@
           const nameInput = document.getElementById('editContactName');
           nameInput.value = data.contact.name;
           nameInput.dataset.original = data.contact.name;
+          nameInput.dataset.edited = 'false'; // Track if user has edited this field
           if (document.body.classList.contains('privacy-mode')) {
             const name = data.contact.name;
             const parts = name.trim().split(' ');
@@ -1260,16 +1261,37 @@
             }
           }
 
+          // When user starts typing, mark as edited and restore original value for editing
+          nameInput.addEventListener('focus', function() {
+            if (nameInput.dataset.edited === 'false' && document.body.classList.contains('privacy-mode')) {
+              nameInput.value = nameInput.dataset.original;
+            }
+          });
+          nameInput.addEventListener('input', function() {
+            nameInput.dataset.edited = 'true';
+          });
+
           // Mask phone in input if privacy mode
           const phoneInput = document.getElementById('editContactPhone');
           phoneInput.value = data.contact.phone_number;
           phoneInput.dataset.original = data.contact.phone_number;
+          phoneInput.dataset.edited = 'false'; // Track if user has edited this field
           if (document.body.classList.contains('privacy-mode')) {
             const phone = data.contact.phone_number;
             if (phone.length >= 4) {
               phoneInput.value = phone.slice(0, -4) + '••••';
             }
           }
+
+          // When user starts typing, mark as edited and restore original value for editing
+          phoneInput.addEventListener('focus', function() {
+            if (phoneInput.dataset.edited === 'false' && document.body.classList.contains('privacy-mode')) {
+              phoneInput.value = phoneInput.dataset.original;
+            }
+          });
+          phoneInput.addEventListener('input', function() {
+            phoneInput.dataset.edited = 'true';
+          });
 
           document.getElementById('manageContactsModal').classList.remove('show');
           document.getElementById('editContactModal').classList.add('show');
@@ -1300,9 +1322,10 @@
       const contactId = document.getElementById('editContactId').value;
       const nameInput = document.getElementById('editContactName');
       const phoneInput = document.getElementById('editContactPhone');
-      // Use original values if masked, otherwise use input values
-      const name = (nameInput.dataset.original || nameInput.value).trim();
-      const phone = (phoneInput.dataset.original || phoneInput.value).trim();
+
+      // If user edited the field, use their input. Otherwise use original (for privacy mode)
+      const name = (nameInput.dataset.edited === 'true' ? nameInput.value : nameInput.dataset.original).trim();
+      const phone = (phoneInput.dataset.edited === 'true' ? phoneInput.value : phoneInput.dataset.original).trim();
 
       if (!name || !phone) {
         showToast('Please fill in all fields', 'info');
