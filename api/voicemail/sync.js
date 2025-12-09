@@ -280,7 +280,7 @@ export default async function handler(req, res) {
 
         // Now transcribe with Deepgram API (runs after message is stored)
         console.log(`[Voicemail Sync] Starting Deepgram transcription for message ${message_num}...`);
-        let transcription = 'Listen to Voicemail 👇'; // fallback
+        let transcription = 'Transcription failed - Listen to Voicemail 👇'; // fallback for errors
         let confidence = null;
 
         try {
@@ -323,8 +323,8 @@ export default async function handler(req, res) {
 
               console.log(`[Voicemail Sync] Deepgram transcription complete (${transcription.length} chars, confidence: ${confidence}%)`);
             } else {
-              transcription = 'Listen to Voicemail 👇';
-              console.log(`[Voicemail Sync] Deepgram returned empty transcript`);
+              transcription = 'No message left';
+              console.log(`[Voicemail Sync] Deepgram returned empty transcript (no speech detected)`);
             }
           } else {
             console.error(`[Voicemail Sync] Deepgram returned unexpected response structure`);
