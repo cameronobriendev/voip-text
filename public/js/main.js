@@ -2032,14 +2032,21 @@
         const data = await response.json();
 
         if (data.success && data.contacts) {
-          // Add all contacts excluding spam
-          data.contacts.forEach(contact => {
-            // Skip spam contacts
-            if (contact.is_spam) return;
+          // Sort contacts: real names first, then phone-number-names
+          const sortedContacts = data.contacts
+            .filter(c => !c.is_spam)
+            .sort((a, b) => {
+              const aIsPhone = /^\+?\d/.test(a.name || '');
+              const bIsPhone = /^\+?\d/.test(b.name || '');
+              if (aIsPhone && !bIsPhone) return 1;  // Phone names go after real names
+              if (!aIsPhone && bIsPhone) return -1;
+              return (a.name || '').localeCompare(b.name || '');
+            });
 
+          sortedContacts.forEach(contact => {
             const option = document.createElement('option');
             const name = contact.name || contact.phone_number;
-            const phone = contact.phone_number.replace(/\D/g, ''); // Strip formatting
+            const phone = contact.phone_number.replace(/\D/g, '');
             const formattedPhone = formatPhoneDisplay(phone);
 
             option.value = phone;
