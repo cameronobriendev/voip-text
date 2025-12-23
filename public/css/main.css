@@ -955,6 +955,11 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+.phone-contact-selector option {
+  background: white;
+  color: black;
+}
+
 .phone-display {
   width: 100%;
   padding: 8px;
