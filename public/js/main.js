@@ -2193,7 +2193,7 @@
           authorization_user: sipConfig.user,
           password: sipConfig.password,
           display_name: sipConfig.displayName,
-          session_timers: true,
+          session_timers: false,
           connection_recovery_min_interval: 2,
           connection_recovery_max_interval: 30
         };
